@@ -1,0 +1,45 @@
+{
+  "name": "usof-forum",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Full-stack question-and-answer forum for developers",
+  "engines": {
+    "node": ">=22.2"
+  },
+  "scripts": {
+    "start:api": "node backend/server.js",
+    "dev:api": "node --watch backend/server.js",
+    "init-db": "node backend/db/init-db.js",
+    "reset-db": "node backend/db/init-db.js --reset",
+    "dev:web": "vite frontend",
+    "build:web": "vite build frontend",
+    "preview:web": "vite preview frontend",
+    "lint:api": "cd backend && eslint .",
+    "format:api": "cd backend && prettier --write .",
+    "format:check:api": "cd backend && prettier --check ."
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.13.0",
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.4.0",
+    "mysql2": "^3.24.3",
+    "node-cron": "^4.6.0",
+    "nodemailer": "^10.0.10",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-redux": "^9.3.0",
+    "react-router-dom": "^7.18.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.9",
+    "vite": "^8.3.0"
+  }
+}
