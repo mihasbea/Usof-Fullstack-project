@@ -5,21 +5,21 @@ const fs = require('fs');
 const path = require('path');
 
 function loadEnvFile() {
-    const candidates = [path.join(process.cwd(), '.env.check'), path.join(__dirname, '.env.check')];
-    for (const file of candidates) {
-        if (!fs.existsSync(file)) continue;
-        const text = fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '');
-        for (const line of text.split(/\r?\n/)) {
-            if (line.trim().startsWith('#')) continue;
-            const m = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
-            if (!m) continue;
-            let value = m[2];
-            if (/^(['"]).*\1$/.test(value)) value = value.slice(1, -1);
-            if (process.env[m[1]] === undefined) process.env[m[1]] = value;
-        }
-        return file;
+    const file = path.join(__dirname, '..', '.env');
+    if (!fs.existsSync(file)) {
+        return null;
     }
-    return null;
+
+    const text = fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '');
+    for (const line of text.split(/\r?\n/)) {
+        if (line.trim().startsWith('#')) continue;
+        const m = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+        if (!m) continue;
+        let value = m[2];
+        if (/^(['"]).*\1$/.test(value)) value = value.slice(1, -1);
+        if (process.env[m[1]] === undefined) process.env[m[1]] = value;
+    }
+    return file;
 }
 const ENV_FILE = loadEnvFile();
 const env = process.env;
@@ -281,7 +281,7 @@ async function main() {
         console.error(
             ENV_FILE
                 ? `Read ${ENV_FILE}, but these names are not in it. Names are case-sensitive, one KEY=value per line.`
-                : `No .env.check found in ${process.cwd()} or ${__dirname}.\nCopy env.check.example to .env.check (next to package.json), fill in the passwords and run again.`
+                : `No root .env found.\nCopy .env.example to .env in the repository root, fill in the API smoke-check credentials and run again.`
         );
         process.exit(2);
     }
@@ -539,7 +539,7 @@ async function main() {
         });
         if (![200, 201].includes(r.status)) {
             throw new Error(
-                `expected 200 / 201, got ${r.status}: ${r.text.slice(0, 200)}\n      Hint: set FULLNAME_FIELD / CONFIRM_FIELD in .env.check to the field names your controller really expects.`
+                `expected 200 / 201, got ${r.status}: ${r.text.slice(0, 200)}\n      Hint: set FULLNAME_FIELD / CONFIRM_FIELD in the root .env to the field names your controller really expects.`
             );
         }
         ctx.adminCreatedId = pickId(r.json, 'user') ?? (await userIdByLogin(login));

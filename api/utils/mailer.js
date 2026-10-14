@@ -1,7 +1,7 @@
 const nodemailer = require('nodemailer');
 
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3001';
 const MAILTRAP_USER = process.env.MAILTRAP_USER;
 const MAILTRAP_PASS = process.env.MAILTRAP_PASS;
 const SENDER = '"USOF Support" <noreply@usof.com>';

@@ -4,24 +4,28 @@ Usof Forum is a full-stack question-and-answer project for developers. It includ
 
 ## Project structure
 
-- `backend/` — Node.js and Express API, MySQL database setup, and administration panel.
-- `frontend/` — React application built with JavaScript, JSX, and Vite.
+- `api/` — Node.js and Express API, MySQL database setup, and administration panel.
+- `web/` — React application built with JavaScript, JSX, and Create React App (CRA).
+- `.env` — local configuration shared by the API and web application; create it from `.env.example`.
+- `package.json` — the only dependency manifest, at the repository root, for both applications.
 
 ## Features
 
-The backend provides API routes for authentication, users, posts, categories, comments, likes, favorites, subscriptions, and notifications. It also includes role-based access checks, file uploads, database initialization, sample data, and an administration panel at `/admin`.
+The API provides routes for authentication, users, posts, categories, comments, likes, favorites, subscriptions, and notifications. It also includes role-based access checks, file uploads, database initialization, sample data, and an administration panel at `/admin`.
 
-The frontend has a shared application layout, routes for login, sign-up, the main page, profile, and notifications, and feature-based Redux Toolkit and RTK Query modules.
+The web application has a shared layout, routes for login, sign-up, the main page, profile, and notifications, and feature-based Redux Toolkit and RTK Query modules.
+
+CRA expects a `package.json` inside its application directory. To keep the repository to one package manifest, `npm run dev:web` and `npm run build:web` generate the minimal CRA metadata file temporarily and remove it when the command exits. Install dependencies only from the repository root.
 
 ## Screenshots
 
-The screenshots below show the administration panel and an example API response.
+The following screenshots show the administration panel and an example API response.
 
-![Administration sign-in](backend/docs/screenshots/admin-login.jpg)
+![Administration sign-in](api/docs/screenshots/admin-login.jpg)
 
-![Administration posts](backend/docs/screenshots/admin-posts.jpg)
+![Administration posts](api/docs/screenshots/admin-posts.jpg)
 
-![Posts API response](backend/docs/screenshots/api-posts.jpg)
+![Posts API response](api/docs/screenshots/api-posts.jpg)
 
 ## Requirements
 
@@ -42,29 +46,21 @@ npm install
 
 ### Configure and start the API
 
-Create the backend environment file:
+Create the project environment file once, at the repository root:
 
 ```powershell
-Copy-Item backend/.env.example backend/.env
+Copy-Item .env.example .env
 ```
 
-Set the MySQL connection, JWT secret, and Mailtrap values in `backend/.env`, then start the API:
+Set the MySQL connection, JWT secret, and Mailtrap values in `.env`, then start the API:
 
 ```powershell
 npm run start:api
 ```
 
-The API defaults to `http://localhost:3000`. The administration panel is available at `http://localhost:3000/admin`. On startup, the backend initializes the database and adds sample data when the database is empty.
+The API defaults to `http://localhost:3000`. The administration panel is available at `http://localhost:3000/admin`. On startup, the API initializes the database and adds sample data when the database is empty.
 
-### Start the frontend
-
-If you need to change the API URL, create the local frontend environment file from its example:
-
-```powershell
-Copy-Item frontend/.env.example frontend/.env.local
-```
-
-Update `VITE_API_URL` in `frontend/.env.local` as needed. This file is ignored by Git.
+### Start the web application
 
 In a second terminal, from the repository root:
 
@@ -72,32 +68,35 @@ In a second terminal, from the repository root:
 npm run dev:web
 ```
 
-Open the local address printed by Vite. The frontend uses `http://localhost:3000` as its default API base URL. Its optional setting is documented in `frontend/.env.example`.
+Open `http://localhost:3001`. The web application uses `http://localhost:3000` as its default API URL. Configure `WEB_PORT` and `REACT_APP_API_URL` in the root `.env` file if needed.
 
 ## Configuration
 
-The backend reads the following settings from `backend/.env`:
+Both applications read their settings from the single `.env` file in the repository root:
 
 | Variable | Purpose |
 | --- | --- |
 | `PORT` | API port; defaults to `3000`. |
+| `WEB_PORT` | CRA development-server port; defaults to `3001`. |
 | `APP_URL` | Base URL used to create API email links. |
 | `CLIENT_URL` | Frontend base URL used in password-reset links. |
+| `REACT_APP_API_URL` | API base URL used by the React client. |
 | `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | MySQL connection settings. |
 | `JWT_SECRET` | Secret used to sign access tokens. |
 | `MAILTRAP_HOST`, `MAILTRAP_PORT`, `MAILTRAP_USER`, `MAILTRAP_PASS` | SMTP settings for the Mailtrap test inbox. |
+| `BASE_URL`, `ADMIN_*`, `USER_*`, `USER2_*`, `*_FIELD` | Optional credentials and field-name overrides for the API smoke-check script. |
 
-Keep `.env` files and their credentials private; they are excluded from Git.
+Keep `.env` and its credentials private; it is excluded from Git. The same root file also holds optional API smoke-check settings.
 
 ## Application flow
 
-1. The React client uses the router to display the application pages.
-2. Feature API modules make HTTP requests to the Express API.
-3. Express routes requests through middleware and controllers.
-4. Controllers coordinate validation and backend operations; models access MySQL.
-5. The API returns JSON responses to the client.
+1. React Router displays the web application pages.
+2. Feature API modules send HTTP requests to the Express API.
+3. Express passes requests through middleware to route handlers.
+4. Controllers validate requests and coordinate database operations through the models.
+5. The API returns JSON responses to the web application.
 
-Authorization is enforced by the backend for protected API operations.
+The API enforces authorization for protected operations.
 
 ## Challenge progress
 
@@ -107,8 +106,8 @@ I chose to build a developer-focused forum where users can publish posts, discus
 
 ### Investigate
 
-I reviewed the API resources and the frontend requirements, then organized the repository into backend and frontend applications. The root `package.json` lists the dependencies for both applications and provides shared commands for starting and building them. Dependencies are installed once from the repository root.
+I reviewed the API resources and the web application requirements, then organized the repository into `api/` and `web/` directories. The root `package.json` lists dependencies for both applications and provides shared commands for starting and building them. Dependencies are installed once from the repository root, and both applications use the same root `.env` file.
 
 ### Act: Basic
 
-I set up the Express and MySQL backend, its administration panel, and an initial React application structure. I added the shared frontend layout, page routes, Redux store, and feature-level API modules. The frontend production build and backend lint checks complete successfully.
+I set up the Express and MySQL API, its administration panel, and an initial React application structure. I added the shared web layout, page routes, Redux store, and feature-level API modules. The web application uses Create React App, and the API lint checks complete successfully.

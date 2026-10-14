@@ -1,6 +1,7 @@
 node_modules/
 dist/
 dist-ssr/
+web/build/
 *.local
 *.log
 npm-debug.log*
@@ -13,7 +14,7 @@ lerna-debug.log*
 .env.*
 !**/.env.example
 
-backend/uploads/
+api/uploads/
 uploads/
 logs/
 
