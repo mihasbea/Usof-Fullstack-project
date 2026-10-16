@@ -13,7 +13,7 @@ Usof Forum is a full-stack question-and-answer project for developers. It includ
 
 The API provides routes for authentication, users, posts, categories, comments, likes, favorites, subscriptions, and notifications. It also includes role-based access checks, file uploads, database initialization, sample data, and an administration panel at `/admin`.
 
-The web application has a shared layout, routes for login, sign-up, the main page, profile, and notifications, and feature-based Redux Toolkit and RTK Query modules.
+The web application has a shared layout, routes for login, sign-up, the main page, profile, and notifications, and feature-based Redux Toolkit and RTK Query modules. Login accepts either a username or an email address. The main feed reads the posts array and pagination metadata from the API response.
 
 CRA expects a `package.json` inside its application directory. To keep the repository to one package manifest, `npm run dev:web` and `npm run build:web` generate the minimal CRA metadata file temporarily and remove it when the command exits. Install dependencies only from the repository root.
 
@@ -79,7 +79,7 @@ Both applications read their settings from the single `.env` file in the reposit
 | `PORT` | API port; defaults to `3000`. |
 | `WEB_PORT` | CRA development-server port; defaults to `3001`. |
 | `APP_URL` | Base URL used to create API email links. |
-| `CLIENT_URL` | Frontend base URL used in password-reset links. |
+| `CLIENT_URL` | Web application origin allowed by the API and used in password-reset links. |
 | `REACT_APP_API_URL` | API base URL used by the React client. |
 | `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | MySQL connection settings. |
 | `JWT_SECRET` | Secret used to sign access tokens. |
@@ -110,4 +110,4 @@ I reviewed the API resources and the web application requirements, then organize
 
 ### Act: Basic
 
-I set up the Express and MySQL API, its administration panel, and an initial React application structure. I added the shared web layout, page routes, Redux store, and feature-level API modules. The web application uses Create React App, and the API lint checks complete successfully.
+I set up the Express and MySQL API, its administration panel, and a React application using Create React App. The web client uses Redux Toolkit and RTK Query to communicate with the API. The login form accepts a username or email, displays API errors, and stores the returned token and safe user profile in Redux. The API allows browser requests from the configured client origin. The main feed reads the posts array and pagination metadata from the API response and displays author names and like counts using the API field names.

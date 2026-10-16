@@ -100,7 +100,16 @@ class AuthController {
                 { expiresIn: ACCESS_TOKEN_LIFETIME }
             );
 
-            return res.status(200).json({ message: 'Login successful', token });
+            const userPayload = {
+                id: user.id,
+                login: user.login,
+                full_name: user.full_name,
+                email: user.email,
+                role: user.role,
+                profile_picture: user.profile_picture,
+            };
+
+            return res.status(200).json({ message: 'Login successful', token, user: userPayload });
         } catch (error) {
             console.error('Error during login:', error);
             return res.status(500).json({ message: 'Internal server error' });

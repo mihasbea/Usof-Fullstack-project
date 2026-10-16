@@ -1,7 +1,8 @@
 import { Button } from '../../components/common/Button';
 import { useGetPostsQuery } from '../../features/posts/postsApi';
 export function MainPage() {
-    const { data: posts = [], isLoading, isError } = useGetPostsQuery();
+    const { data: response, isLoading, isError } = useGetPostsQuery();
+    const posts = response?.data ?? [];
     return (<section className="page-block">
       <div className="page-header">
         <div>
@@ -15,9 +16,9 @@ export function MainPage() {
           {posts.map((post) => (<article key={post.id} className="feed-card">
               <div className="feed-card__top">
                 <h3>{post.title}</h3>
-                <span className="tag">{post.likes} likes</span>
+                <span className="tag">{post.likes_count} likes</span>
               </div>
-              <p>by {post.authorLogin}</p>
+              <p>by {post.author_login}</p>
             </article>))}
         </div>)}
     </section>);

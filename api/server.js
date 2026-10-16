@@ -20,6 +20,7 @@ const { UPLOADS_DIR, UPLOADS_URL } = require('./utils/uploads');
 
 const REQUIRED_ENV_VARS = ['DB_HOST', 'DB_USER', 'DB_NAME', 'JWT_SECRET'];
 const PORT = Number(process.env.PORT) || 3000;
+const CLIENT_ORIGIN = process.env.CLIENT_URL || 'http://localhost:3001';
 const ADMIN_DIR = path.join(__dirname, 'admin');
 const ADMIN_INDEX = path.join(ADMIN_DIR, 'index.html');
 const PUBLIC_ASSETS_DIR = path.join(__dirname, 'public', 'assets');
@@ -31,6 +32,21 @@ const ADMIN_SECURITY_HEADERS = {
 };
 
 const app = express();
+
+app.use((req, res, next) => {
+    if (req.get('Origin') === CLIENT_ORIGIN) {
+        res.setHeader('Access-Control-Allow-Origin', CLIENT_ORIGIN);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.vary('Origin');
+    }
+
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+    }
+
+    return next();
+});
 
 app.use(express.json());
 app.use((req, res, next) => {
