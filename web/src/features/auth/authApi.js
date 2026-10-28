@@ -21,11 +21,17 @@ export const authApi = createApi({
         }),
         signUpUser: builder.mutation({
             query: (payload) => ({
-                url: '/api/auth/signup',
+                url: '/api/auth/register',
                 method: 'POST',
                 body: payload,
             }),
         }),
+        logoutUser: builder.mutation({
+            query: () => ({
+                url: '/api/auth/logout',
+                method: 'POST',
+            }),
+        }),
     }),
 });
-export const { useLoginUserMutation, useSignUpUserMutation } = authApi;
+export const { useLoginUserMutation, useSignUpUserMutation, useLogoutUserMutation } = authApi;

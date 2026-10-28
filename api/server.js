@@ -33,6 +33,8 @@ const ADMIN_SECURITY_HEADERS = {
 
 const app = express();
 
+app.use('/assets', express.static(path.resolve(__dirname, '../web/public/assets')));
+
 app.use((req, res, next) => {
     if (req.get('Origin') === CLIENT_ORIGIN) {
         res.setHeader('Access-Control-Allow-Origin', CLIENT_ORIGIN);

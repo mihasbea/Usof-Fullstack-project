@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useLoginUserMutation } from '../../features/auth/authApi';
 import { setCredentials } from '../../features/auth/authSlice';
+import { AuthLayout } from '../../components/layout/AuthLayout';
 
 export function LoginPage() {
     const navigate = useNavigate();
@@ -47,14 +48,14 @@ export function LoginPage() {
     };
 
     return (
-        <div className="auth-shell">
+        <AuthLayout>
             <div className="auth-card">
-                <h1>Welcome back</h1>
-                <p>Sign in to continue to your feed.</p>
+                <p className="eyebrow">Welcome back</p>
+                <h1>Log in to your account</h1>
 
                 <form className="auth-form" onSubmit={handleSubmit}>
                     {errorMessage && (
-                        <p role="alert" className="error-message" style={{ color: '#e53e3e', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                        <p role="alert" className="error-message">
                             {errorMessage}
                         </p>
                     )}
@@ -64,7 +65,7 @@ export function LoginPage() {
                         <input
                             name="loginOrEmail"
                             type="text"
-                            placeholder="your login or email"
+                            placeholder="Your login or email"
                             autoComplete="username"
                             disabled={isLoading}
                             required
@@ -76,7 +77,7 @@ export function LoginPage() {
                         <input
                             name="password"
                             type="password"
-                            placeholder="••••••••"
+                            placeholder="Enter your password"
                             autoComplete="current-password"
                             disabled={isLoading}
                             required
@@ -89,9 +90,9 @@ export function LoginPage() {
                 </form>
 
                 <p className="auth-link">
-                    Don&apos;t have an account? <Link to="/signup">Create one</Link>
+                    New to USOF? <Link to="/signup">Create an account</Link>
                 </p>
             </div>
-        </div>
+        </AuthLayout>
     );
 }

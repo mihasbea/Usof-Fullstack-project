@@ -13,7 +13,7 @@ Usof Forum is a full-stack question-and-answer project for developers. It includ
 
 The API provides routes for authentication, users, posts, categories, comments, likes, favorites, subscriptions, and notifications. It also includes role-based access checks, file uploads, database initialization, sample data, and an administration panel at `/admin`.
 
-The web application has a shared layout, routes for login, sign-up, the main page, profile, and notifications, and feature-based Redux Toolkit and RTK Query modules. Login accepts either a username or an email address. The main feed reads the posts array and pagination metadata from the API response.
+The web application has a shared layout, routes for login, sign-up, email-confirmation instructions, the main page, profile, and notifications, and feature-based Redux Toolkit and RTK Query modules. Login accepts either a username or an email address. After registration, users are directed to the email-confirmation instructions page. The shared header reads the signed-in user's login, role, and avatar from Redux, links to the profile, and logs out through the API. The profile page loads the signed-in user's private profile from `GET /api/users/:user_id` with the access token. The main feed reads the posts array and pagination metadata from the API response.
 
 CRA expects a `package.json` inside its application directory. To keep the repository to one package manifest, `npm run dev:web` and `npm run build:web` generate the minimal CRA metadata file temporarily and remove it when the command exits. Install dependencies only from the repository root.
 
@@ -98,6 +98,13 @@ Keep `.env` and its credentials private; it is excluded from Git. The same root 
 
 The API enforces authorization for protected operations.
 
+### Verify the profile page
+
+1. Start the API and web application, then sign in with a confirmed account.
+2. Open `/profile`. Confirm that the login, full name, email, role, and avatar (if set) match the signed-in account.
+3. In the browser developer tools, open **Network**, select the `GET /api/users/<user_id>` request, and confirm it returns `200` and includes an `Authorization: Bearer ...` request header. Do not copy or share the token.
+4. Reloading the page currently clears the Redux-only login session; sign in again before repeating this check.
+
 ## Challenge progress
 
 ### Engage
@@ -110,4 +117,4 @@ I reviewed the API resources and the web application requirements, then organize
 
 ### Act: Basic
 
-I set up the Express and MySQL API, its administration panel, and a React application using Create React App. The web client uses Redux Toolkit and RTK Query to communicate with the API. The login form accepts a username or email, displays API errors, and stores the returned token and safe user profile in Redux. The API allows browser requests from the configured client origin. The main feed reads the posts array and pagination metadata from the API response and displays author names and like counts using the API field names.
+I set up the Express and MySQL API, its administration panel, and a React application using Create React App. The web client uses Redux Toolkit and RTK Query to communicate with the API. The login form accepts a username or email, displays API errors, and stores the returned token and safe user profile in Redux. The shared header displays that profile, links to the user's profile, and supports API-backed logout. The profile page fetches the current user's API profile with the bearer token and handles loading and request errors. The API allows browser requests from the configured client origin. The main feed reads the posts array and pagination metadata from the API response and displays author names and like counts using the API field names.

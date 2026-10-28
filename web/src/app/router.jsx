@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { AppLayout } from '../components/layout/AppLayout';
+import { CheckEmailPage } from '../pages/auth/CheckEmailPage';
 import { LoginPage } from '../pages/auth/LoginPage';
 import { SignUpPage } from '../pages/auth/SignUpPage';
 import { MainPage } from '../pages/main/MainPage';
@@ -27,19 +28,23 @@ export const appRouter = createBrowserRouter([
                 path: '/signup',
                 element: <SignUpPage />,
             },
+            {
+                path: '/check-email',
+                element: <CheckEmailPage />,
+            },
         ],
     },
     {
-        element: <ProtectedRoute />,
+        path: '/',
+        element: <AppLayout />,
         children: [
             {
-                path: '/',
-                element: <AppLayout />,
+                index: true,
+                element: <MainPage />,
+            },
+            {
+                element: <ProtectedRoute />,
                 children: [
-                    {
-                        index: true,
-                        element: <MainPage />,
-                    },
                     {
                         path: 'profile',
                         element: <ProfilePage />,

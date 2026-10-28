@@ -1,22 +1,88 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Link, useNavigate } from 'react-router-dom';
+import { authApi, useLogoutUserMutation } from '../../features/auth/authApi';
+import { logout, selectCurrentUser } from '../../features/auth/authSlice';
+
 export function Header() {
-    return (<header className="topbar">
-      <div className="brand-wrap">
-        <Link to="/" className="brand">
-          USOF<span className="brand-mark">;</span>
-        </Link>
-      </div>
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const user = useSelector(selectCurrentUser);
+    const [logoutUser, { isLoading }] = useLogoutUserMutation();
+    const [logoutError, setLogoutError] = useState('');
+    const apiUrl = process.env.REACT_APP_API_URL ?? 'http://localhost:3000';
+    const avatarInitial = (user?.login || user?.full_name || 'G').charAt(0).toUpperCase();
+    const avatarUrl = user?.profile_picture
+        ? new URL(user.profile_picture, apiUrl).toString()
+        : null;
 
-      <div className="header-search">
-        <input type="search" placeholder="Search posts, users, comments..."/>
-      </div>
+    const handleLogout = async () => {
+        setLogoutError('');
+        try {
+            await logoutUser().unwrap();
+            dispatch(logout());
+            dispatch(authApi.util.resetApiState());
+            navigate('/', { replace: true });
+        } catch (error) {
+            setLogoutError(error?.data?.message || 'Could not log out. Please try again.');
+        }
+    };
 
-      <div className="header-user">
-        <div className="user-avatar">M</div>
-        <div className="user-meta">
-          <strong>mmykhalchenko</strong>
-          <span>user</span>
-        </div>
-      </div>
-    </header>);
+    return (
+        <header className="topbar">
+            <div className="brand-wrap">
+                <Link to="/" className="brand">
+                    USOF<span className="brand-mark">;</span>
+                </Link>
+            </div>
+
+            <div className="header-search">
+                <input type="search" placeholder="Search posts, users, comments..." />
+            </div>
+
+            <div className="header-user">
+                {user && (
+                    <Link
+                        to="/profile"
+                        className="header-profile-link"
+                        aria-label={`Open ${user.login}'s profile`}
+                    >
+                        <span className="user-avatar" aria-hidden="true">
+                            {avatarInitial}
+                            {avatarUrl && (
+                                <img
+                                    src={avatarUrl}
+                                    alt=""
+                                    onError={(event) => {
+                                        event.currentTarget.hidden = true;
+                                    }}
+                                />
+                            )}
+                        </span>
+                        <span className="user-meta">
+                            <strong>{user.login}</strong>
+                            <span>{user.role || 'member'}</span>
+                        </span>
+                    </Link>
+                )}
+                {user && (
+                    <button
+                        type="button"
+                        className="header-logout"
+                        onClick={handleLogout}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? 'Logging out...' : 'Log out'}
+                    </button>
+                )}
+                {!user && (
+                    <div className="header-auth-actions">
+                        <Link to="/login" className="header-auth-link">Log in</Link>
+                        <Link to="/signup" className="btn btn-primary header-signup">Sign up</Link>
+                    </div>
+                )}
+                {logoutError && <span className="header-logout-error" role="alert">{logoutError}</span>}
+            </div>
+        </header>
+    );
 }
