@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { selectCurrentUser, selectIsAuthenticated } from '../auth/authSlice';
 import { useAddPostLikeMutation, useGetPostLikesQuery } from './postsApi';
+import { VoteButton } from './VoteButton';
 
 export function PostRating({ post }) {
     const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -22,29 +23,21 @@ export function PostRating({ post }) {
     };
 
     return (
-        <div className="post-rating" aria-label="Rate this post">
-            <button
-                type="button"
-                className={`rating-button${currentRating === 'like' ? ' active' : ''}`}
+        <div className="post-rating" role="group" aria-label="Rate this post">
+            <VoteButton
+                type="like"
+                active={currentRating === 'like'}
+                count={post.likes_count ?? 0}
+                disabled={!isAuthenticated || isLoading}
                 onClick={() => handleRating('like')}
+            />
+            <VoteButton
+                type="dislike"
+                active={currentRating === 'dislike'}
+                count={post.dislikes_count ?? 0}
                 disabled={!isAuthenticated || isLoading}
-                aria-label={`Like post, ${post.likes_count ?? 0} likes`}
-                title={isAuthenticated ? 'Like' : 'Log in to like this post'}
-            >
-                <span aria-hidden="true">▲</span>
-                <span>{post.likes_count ?? 0}</span>
-            </button>
-            <button
-                type="button"
-                className={`rating-button${currentRating === 'dislike' ? ' active' : ''}`}
                 onClick={() => handleRating('dislike')}
-                disabled={!isAuthenticated || isLoading}
-                aria-label={`Dislike post, ${post.dislikes_count ?? 0} dislikes`}
-                title={isAuthenticated ? 'Dislike' : 'Log in to dislike this post'}
-            >
-                <span aria-hidden="true">▼</span>
-                <span>{post.dislikes_count ?? 0}</span>
-            </button>
+            />
             {!isAuthenticated && (
                 <span className="rating-login-prompt">
                     <Link to="/login">Log in</Link> to vote

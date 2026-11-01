@@ -86,7 +86,7 @@ function renderEmail({ preheader, title, message, actionLabel, actionUrl, note }
                                 </tr>
                             </table>
                             <p style="margin:24px 0 8px;color:${BRAND_COLORS.muted};font-family:Outfit,'Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.6;">If the button does not work, copy and paste this link into your browser:</p>
-                            <p style="margin:0;overflow-wrap:anywhere;font-family:Arial,sans-serif;font-size:13px;line-height:1.6;"><a href="${safeUrl}" style="color:${BRAND_COLORS.navy};">${safeUrl}</a></p>
+                            <p style="margin:0;overflow-wrap:anywhere;font-family:Outfit,'Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.6;"><a href="${safeUrl}" style="color:${BRAND_COLORS.navy};">${safeUrl}</a></p>
                             <p style="margin:24px 0 0;padding:16px;border-radius:8px;background-color:${BRAND_COLORS.background};color:${BRAND_COLORS.muted};font-family:Outfit,'Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.6;">${escapeHtml(note)}</p>
                         </td>
                     </tr>

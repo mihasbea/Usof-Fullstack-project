@@ -2,6 +2,7 @@ const { pool, withTransaction } = require('../db/db');
 const Notification = require('./Notification');
 
 const CATEGORY_FIELDS = 'id, title, description, created_at, updated_at';
+const CATEGORY_OWNER_FIELDS = `${CATEGORY_FIELDS}, created_by`;
 const UPDATABLE_COLUMNS = ['title', 'description'];
 
 class Category {
@@ -12,9 +13,15 @@ class Category {
     }
 
     static async findById(id) {
-        const sql = `SELECT ${CATEGORY_FIELDS} FROM categories WHERE id = ?`;
+        const sql = `SELECT ${CATEGORY_OWNER_FIELDS} FROM categories WHERE id = ?`;
         const [rows] = await pool.query(sql, [id]);
         return rows[0];
+    }
+
+    static async findOwnedBy(userId) {
+        const sql = `SELECT ${CATEGORY_FIELDS} FROM categories WHERE created_by = ? ORDER BY title`;
+        const [categories] = await pool.query(sql, [userId]);
+        return categories;
     }
 
     static async findExistingIds(ids) {
@@ -23,9 +30,9 @@ class Category {
         return rows.map((row) => row.id);
     }
 
-    static async create({ title, description = null }) {
-        const sql = 'INSERT INTO categories (title, description) VALUES (?, ?)';
-        const [result] = await pool.query(sql, [title, description]);
+    static async create({ title, description = null, created_by }) {
+        const sql = 'INSERT INTO categories (title, description, created_by) VALUES (?, ?, ?)';
+        const [result] = await pool.query(sql, [title, description, created_by]);
         return result.insertId;
     }
 

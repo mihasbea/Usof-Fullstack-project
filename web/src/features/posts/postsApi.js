@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const postsApi = createApi({
     reducerPath: 'postsApi',
-    tagTypes: ['Post', 'PostList', 'PostComments', 'PostLikes'],
+    tagTypes: ['Post', 'PostList', 'PostComments', 'PostLikes', 'Categories'],
     baseQuery: fetchBaseQuery({
         baseUrl: process.env.REACT_APP_API_URL ?? 'http://localhost:3000',
         prepareHeaders: (headers, { getState }) => {
@@ -15,6 +15,7 @@ export const postsApi = createApi({
     endpoints: (builder) => ({
         getCategories: builder.query({
             query: () => '/api/categories',
+            providesTags: ['Categories'],
         }),
         getPosts: builder.query({
             query: ({ page = 1, limit = 10, sort = 'date', order = 'desc', status, categories, dateFrom, dateTo, search,} = {}) => {
@@ -75,6 +76,25 @@ export const postsApi = createApi({
                 { type: 'PostComments', id: postId },
             ],
         }),
+        createPost: builder.mutation({
+            query: (formData) => ({
+                url: '/api/posts',
+                method: 'POST',
+                body: formData,
+            }),
+            invalidatesTags: [{ type: 'PostList', id: 'LIST' }],
+        }),
+        updatePost: builder.mutation({
+            query: ({ postId, changes }) => ({
+                url: `/api/posts/${postId}`,
+                method: 'PATCH',
+                body: changes,
+            }),
+            invalidatesTags: (_result, _error, { postId }) => [
+                { type: 'Post', id: postId },
+                { type: 'PostList', id: 'LIST' },
+            ],
+        }),
     }),
 });
 export const {
@@ -85,4 +105,6 @@ export const {
     useGetPostCommentsQuery,
     useGetPostLikesQuery,
     useGetPostsQuery,
+    useCreatePostMutation,
+    useUpdatePostMutation,
 } = postsApi;

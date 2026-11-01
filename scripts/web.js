@@ -27,6 +27,7 @@ const manifest = {
     browserslist: rootManifest.browserslist,
 };
 
+let ownsManifest = false;
 if (fs.existsSync(appManifest)) {
     let existingManifest;
     try {
@@ -40,13 +41,13 @@ if (fs.existsSync(appManifest)) {
             `CRA needs a temporary web/package.json. Remove the manually created file at ${appManifest} and run the root command again.`
         );
     }
-    fs.unlinkSync(appManifest);
+} else {
+    fs.writeFileSync(appManifest, `${JSON.stringify(manifest, null, 2)}\n`, { flag: 'wx' });
+    ownsManifest = true;
 }
 
-fs.writeFileSync(appManifest, `${JSON.stringify(manifest, null, 2)}\n`, { flag: 'wx' });
-
 function removeGeneratedManifest() {
-    if (!fs.existsSync(appManifest)) return;
+    if (!ownsManifest || !fs.existsSync(appManifest)) return;
 
     try {
         const existingManifest = JSON.parse(fs.readFileSync(appManifest, 'utf8'));

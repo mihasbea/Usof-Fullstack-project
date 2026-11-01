@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { AppLayout } from '../components/layout/AppLayout';
 import { CheckEmailPage } from '../pages/auth/CheckEmailPage';
@@ -8,14 +8,25 @@ import { MainPage } from '../pages/main/MainPage';
 import { ProfilePage } from '../pages/profile/ProfilePage';
 import { NotificationsPage } from '../pages/notifications/NotificationsPage';
 import { selectIsAuthenticated } from '../features/auth/authSlice';
+import { CreatePostPage } from '../pages/post/CreatePostPage';
+import { PostPage } from '../pages/post/PostPage';
+
 function PublicRoute() {
     const isAuthenticated = useSelector(selectIsAuthenticated);
-    return isAuthenticated ? <Navigate to="/" replace/> : <Outlet />;
+    const location = useLocation();
+    return isAuthenticated
+        ? <Navigate to={location.state?.from ?? '/'} replace />
+        : <Outlet />;
 }
+
 function ProtectedRoute() {
     const isAuthenticated = useSelector(selectIsAuthenticated);
-    return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace/>;
+    const location = useLocation();
+    return isAuthenticated
+        ? <Outlet />
+        : <Navigate to="/login" replace state={{ from: location.pathname }} />;
 }
+
 export const appRouter = createBrowserRouter([
     {
         element: <PublicRoute />,
@@ -43,8 +54,16 @@ export const appRouter = createBrowserRouter([
                 element: <MainPage />,
             },
             {
+                path: 'posts/:postId',
+                element: <PostPage />,
+            },
+            {
                 element: <ProtectedRoute />,
                 children: [
+                    {
+                        path: 'posts/new',
+                        element: <CreatePostPage />,
+                    },
                     {
                         path: 'profile',
                         element: <ProfilePage />,

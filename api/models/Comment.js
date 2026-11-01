@@ -95,11 +95,31 @@ class Comment {
             FROM comments c
             JOIN users u ON c.author_id = u.id
             ${LIKE_COUNTS_JOIN}
-            WHERE c.post_id = ?
-            ORDER BY c.created_at ASC, c.id ASC
+            WHERE c.post_id = ? AND c.status = 'active'
+            ORDER BY COALESCE(lc.likes_count, 0) ASC, c.created_at ASC, c.id ASC
         `;
         const [comments] = await pool.query(sql, [postId]);
         return comments;
+    }
+
+    static async findByAuthor(authorId, { limit, offset }) {
+        const conditions = 'WHERE c.author_id = ?';
+        const commentsSql = `
+            SELECT ${COMMENT_FIELDS}, p.title AS post_title
+            FROM comments c
+            JOIN users u ON c.author_id = u.id
+            JOIN posts p ON p.id = c.post_id
+            ${LIKE_COUNTS_JOIN}
+            ${conditions}
+            ORDER BY c.created_at DESC, c.id DESC
+            LIMIT ? OFFSET ?
+        `;
+        const countSql = `SELECT COUNT(*) AS total FROM comments c ${conditions}`;
+        const [[comments], [countRows]] = await Promise.all([
+            pool.query(commentsSql, [authorId, limit, offset]),
+            pool.query(countSql, [authorId]),
+        ]);
+        return { comments, total: countRows[0].total };
     }
 
     static async findAccessInfo(id) {

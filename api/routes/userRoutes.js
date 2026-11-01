@@ -11,6 +11,9 @@ router.get('/', optionalAuth, UserController.getAll);
 router.post('/', requireAuth, requireAdmin, UserController.create);
 router.patch('/avatar', requireAuth, uploadAvatar, UserController.uploadAvatar);
 
+router.get('/:user_id/posts', requireAuth, requireOwnerOrAdmin, UserController.getPosts);
+router.get('/:user_id/comments', requireAuth, requireOwnerOrAdmin, UserController.getComments);
+router.get('/:user_id/categories', requireAuth, requireOwnerOrAdmin, UserController.getCategories);
 router.get('/:user_id', optionalAuth, UserController.getById);
 router.patch('/:user_id', requireAuth, requireOwnerOrAdmin, UserController.update);
 router.delete('/:user_id', requireAuth, requireOwnerOrAdmin, UserController.delete);

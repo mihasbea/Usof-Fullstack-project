@@ -7,6 +7,16 @@ const { MAX_STRING_LENGTH, validateText } = require('../utils/validators');
 
 const MAX_DESCRIPTION_LENGTH = 1000;
 
+function canManageCategory(category, user) {
+    return user.role === 'admin' || category.created_by === user.id;
+}
+
+function withoutCreator(category) {
+    const result = { ...category };
+    delete result.created_by;
+    return result;
+}
+
 function validateTitle(title) {
     return validateText(title, 'Title', MAX_STRING_LENGTH);
 }
@@ -40,7 +50,7 @@ class CategoryController {
     }
 
     static async getById(req, res) {
-        return res.status(200).json(req.category);
+        return res.status(200).json(withoutCreator(req.category));
     }
 
     static async getPosts(req, res) {
@@ -88,8 +98,9 @@ class CategoryController {
             const categoryId = await Category.create({
                 title: title.trim(),
                 description: descriptionValue,
+                created_by: req.user.id,
             });
-            const category = await Category.findById(categoryId);
+            const category = withoutCreator(await Category.findById(categoryId));
 
             return res.status(201).json({ message: 'Category created successfully', category });
         } catch (error) {
@@ -105,6 +116,12 @@ class CategoryController {
 
     static async update(req, res) {
         try {
+            if (!canManageCategory(req.category, req.user)) {
+                return res.status(403).json({
+                    message: 'Only the category creator or an admin can update this category',
+                });
+            }
+
             const { title, description } = req.body;
             const changes = {};
 
@@ -131,7 +148,7 @@ class CategoryController {
             }
 
             await Category.update(req.category.id, changes);
-            const category = await Category.findById(req.category.id);
+            const category = withoutCreator(await Category.findById(req.category.id));
 
             return res.status(200).json({ message: 'Category updated successfully', category });
         } catch (error) {
@@ -147,6 +164,12 @@ class CategoryController {
 
     static async delete(req, res) {
         try {
+            if (!canManageCategory(req.category, req.user)) {
+                return res.status(403).json({
+                    message: 'Only the category creator or an admin can delete this category',
+                });
+            }
+
             const { affectedPosts, notifiedUsers } = await CategoryDeletionService.delete(
                 req.category
             );

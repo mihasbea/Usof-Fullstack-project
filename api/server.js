@@ -26,7 +26,7 @@ const ADMIN_INDEX = path.join(ADMIN_DIR, 'index.html');
 const PUBLIC_ASSETS_DIR = path.join(__dirname, 'public', 'assets');
 const ADMIN_SECURITY_HEADERS = {
     'Content-Security-Policy':
-        "default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+        "default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'no-referrer',
 };

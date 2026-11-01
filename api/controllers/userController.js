@@ -1,6 +1,10 @@
 const { isDuplicateEntryError } = require('../db/db');
+const Category = require('../models/Category');
+const Comment = require('../models/Comment');
 const Post = require('../models/Post');
 const User = require('../models/User');
+const { buildPagination, parsePagination } = require('../utils/pagination');
+const { buildPostListResponse, parsePostListQuery } = require('../utils/postListQuery');
 const { removeFiles, toDiskPath, toPublicPath } = require('../utils/uploads');
 const { hashPassword } = require('../utils/security');
 const {
@@ -73,6 +77,78 @@ class UserController {
             return res.status(200).json(user);
         } catch (error) {
             console.error(`Error fetching user ID ${req.params.user_id}:`, error);
+            return res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+
+    static async getPosts(req, res) {
+        try {
+            const userId = parsePositiveInt(req.params.user_id);
+            if (!userId) {
+                return res.status(400).json({ message: 'Invalid user ID format' });
+            }
+
+            const query = parsePostListQuery(req.query);
+            if (query.error) {
+                return res.status(400).json({ message: query.error });
+            }
+
+            const { posts, total } = await Post.findAll({
+                user: req.user,
+                filters: { ...query.filters, authorId: userId },
+                sort: query.sort,
+                order: query.order,
+                limit: query.limit,
+                offset: query.offset,
+            });
+            return res
+                .status(200)
+                .json(buildPostListResponse(posts, total, query.page, query.limit));
+        } catch (error) {
+            console.error(`Error fetching posts for user ID ${req.params.user_id}:`, error);
+            return res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+
+    static async getComments(req, res) {
+        try {
+            const userId = parsePositiveInt(req.params.user_id);
+            if (!userId) {
+                return res.status(400).json({ message: 'Invalid user ID format' });
+            }
+
+            const pagination = parsePagination(req.query, 10);
+            if (pagination.error) {
+                return res.status(400).json({ message: pagination.error });
+            }
+
+            const { comments, total } = await Comment.findByAuthor(userId, pagination);
+            return res.status(200).json({
+                data: comments,
+                pagination: buildPagination(
+                    'total_comments',
+                    total,
+                    pagination.page,
+                    pagination.limit
+                ),
+            });
+        } catch (error) {
+            console.error(`Error fetching comments for user ID ${req.params.user_id}:`, error);
+            return res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+
+    static async getCategories(req, res) {
+        try {
+            const userId = parsePositiveInt(req.params.user_id);
+            if (!userId) {
+                return res.status(400).json({ message: 'Invalid user ID format' });
+            }
+
+            const categories = await Category.findOwnedBy(userId);
+            return res.status(200).json(categories);
+        } catch (error) {
+            console.error(`Error fetching categories for user ID ${req.params.user_id}:`, error);
             return res.status(500).json({ message: 'Internal server error' });
         }
     }

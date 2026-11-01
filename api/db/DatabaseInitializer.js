@@ -28,6 +28,7 @@ class DatabaseInitializer {
             );
             await connection.changeUser({ database: databaseName });
             await connection.query(await fs.readFile(SCHEMA_PATH, 'utf8'));
+            await DatabaseInitializer.ensureCategoryOwnership(connection, databaseName);
 
             const [rows] = await connection.query('SELECT COUNT(*) AS total FROM users');
             if (rows[0].total > 0) {
@@ -40,6 +41,26 @@ class DatabaseInitializer {
         } finally {
             await connection.end();
         }
+    }
+
+    static async ensureCategoryOwnership(connection, databaseName) {
+        const [columns] = await connection.query(
+            `SELECT COLUMN_NAME
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'categories' AND COLUMN_NAME = 'created_by'`,
+            [databaseName]
+        );
+        if (columns.length > 0) {
+            return;
+        }
+
+        await connection.query(`
+            ALTER TABLE categories
+            ADD COLUMN created_by INT UNSIGNED NULL,
+            ADD INDEX idx_categories_created_by (created_by),
+            ADD CONSTRAINT fk_categories_created_by
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        `);
     }
 }
 

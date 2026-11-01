@@ -54,9 +54,72 @@ class Post {
         });
     }
 
+    static async attachAttachments(posts) {
+        if (posts.length === 0) {
+            return posts;
+        }
+
+        const sql = `
+            SELECT id, post_id, file_path, file_type
+            FROM post_attachments
+            WHERE post_id IN (?)
+            ORDER BY id
+        `;
+        const [rows] = await pool.query(sql, [posts.map((post) => post.id)]);
+
+        const byPost = new Map();
+        for (const { post_id, ...attachment } of rows) {
+            if (!byPost.has(post_id)) byPost.set(post_id, []);
+            byPost.get(post_id).push(attachment);
+        }
+
+        return posts.map((post) => ({ ...post, attachments: byPost.get(post.id) ?? [] }));
+    }
+
+    static async attachTopComments(posts) {
+        if (posts.length === 0) {
+            return posts;
+        }
+
+        const sql = `
+            SELECT id, post_id, content, created_at, author_id, author_login, likes_count
+            FROM (
+                SELECT
+                    c.id, c.post_id, c.content, c.created_at, c.author_id,
+                    u.login AS author_login,
+                    COALESCE(cl.likes_count, 0) AS likes_count,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY c.post_id
+                        ORDER BY COALESCE(cl.likes_count, 0) DESC, c.created_at ASC, c.id ASC
+                    ) AS rn
+                FROM comments c
+                JOIN users u ON u.id = c.author_id
+                LEFT JOIN (
+                    SELECT comment_id, COUNT(*) AS likes_count
+                    FROM likes
+                    WHERE comment_id IS NOT NULL AND type = 'like'
+                    GROUP BY comment_id
+                ) cl ON cl.comment_id = c.id
+                WHERE c.post_id IN (?)
+            ) ranked
+            WHERE rn = 1
+        `;
+        const [rows] = await pool.query(sql, [posts.map((post) => post.id)]);
+        const byPost = new Map(rows.map(({ post_id, ...comment }) => [post_id, comment]));
+
+        return posts.map((post) => ({ ...post, top_comment: byPost.get(post.id) ?? null }));
+    }
+
+
     static async findAll({ user, filters, sort, order, limit, offset }) {
         const { where, params } = buildListConditions(user, filters);
         const direction = order === 'asc' ? 'ASC' : 'DESC';
+
+        const orderBy =
+            sort === 'date'
+                ? `p.created_at ${direction}, p.id ${direction}`
+                : `${SORT_COLUMNS[sort]} ${direction}, p.created_at DESC, p.id DESC`;
+
 
         const postsSql = `
             SELECT ${POST_FIELDS}
@@ -64,7 +127,7 @@ class Post {
             JOIN users u ON p.author_id = u.id
             ${LIKE_COUNTS_JOIN}
             ${where}
-            ORDER BY ${SORT_COLUMNS[sort]} ${direction}, p.created_at DESC, p.id DESC
+            ORDER BY ${orderBy}
             LIMIT ? OFFSET ?
         `;
         const countSql = `SELECT COUNT(*) AS total FROM posts p ${where}`;
@@ -74,7 +137,11 @@ class Post {
             pool.query(countSql, params),
         ]);
 
-        return { posts: await Post.attachCategories(posts), total: countRows[0].total };
+        const withCategories = await Post.attachCategories(posts);
+        const withAttachments = await Post.attachAttachments(withCategories);
+        const withTopComment = await Post.attachTopComments(withAttachments);
+
+        return { posts: withTopComment, total: countRows[0].total };
     }
 
     static async findById(id) {
@@ -216,7 +283,7 @@ class Post {
 
 function buildListConditions(
     user,
-    { status, categoryIds, dateFrom, dateTo, favoriteOf, subscribedBy, search }
+    { status, authorId, categoryIds, dateFrom, dateTo, favoriteOf, subscribedBy, search }
 ) {
     const conditions = [];
     const params = [];
@@ -229,6 +296,10 @@ function buildListConditions(
     if (status) {
         conditions.push('p.status = ?');
         params.push(status);
+    }
+    if (authorId) {
+        conditions.push('p.author_id = ?');
+        params.push(authorId);
     }
     if (categoryIds) {
         conditions.push('p.id IN (SELECT post_id FROM post_categories WHERE category_id IN (?))');

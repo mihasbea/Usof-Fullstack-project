@@ -1,20 +1,37 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { authApi, useLogoutUserMutation } from '../../features/auth/authApi';
 import { logout, selectCurrentUser } from '../../features/auth/authSlice';
 
 export function Header() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const location = useLocation();
     const user = useSelector(selectCurrentUser);
     const [logoutUser, { isLoading }] = useLogoutUserMutation();
     const [logoutError, setLogoutError] = useState('');
+    const [search, setSearch] = useState(
+        () => new URLSearchParams(location.search).get('search') ?? ''
+    );
     const apiUrl = process.env.REACT_APP_API_URL ?? 'http://localhost:3000';
     const avatarInitial = (user?.login || user?.full_name || 'G').charAt(0).toUpperCase();
     const avatarUrl = user?.profile_picture
         ? new URL(user.profile_picture, apiUrl).toString()
         : null;
+
+    useEffect(() => {
+        setSearch(new URLSearchParams(location.search).get('search') ?? '');
+    }, [location.search]);
+
+    const handleSearch = (event) => {
+        event.preventDefault();
+        const query = search.trim();
+        navigate({
+            pathname: '/',
+            search: query ? `?search=${encodeURIComponent(query)}` : '',
+        });
+    };
 
     const handleLogout = async () => {
         setLogoutError('');
@@ -36,9 +53,17 @@ export function Header() {
                 </Link>
             </div>
 
-            <div className="header-search">
-                <input type="search" placeholder="Search posts, users, comments..." />
-            </div>
+            <form className="header-search" role="search" onSubmit={handleSearch}>
+                <label className="sr-only" htmlFor="site-search">Search posts</label>
+                <input
+                    id="site-search"
+                    type="search"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search posts or authors..."
+                />
+                <button type="submit" className="header-search-button">Search</button>
+            </form>
 
             <div className="header-user">
                 {user && (

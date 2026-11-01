@@ -587,8 +587,24 @@ async function main() {
 
     section('Categories');
 
-    await test('user cannot create a category -> 403', async () => {
-        expectStatus(await u1.post('/categories', { title: `c_${rnd}` }), 403);
+    await test('user creates and manages an owned category', async () => {
+        const title = `user_cat_${rnd}`;
+        const created = await u1.post('/categories', { title });
+        expectStatus(created, [200, 201]);
+        ctx.userCatId = pickId(created.json, 'category');
+        assert(ctx.userCatId !== undefined, 'created category has no id');
+
+        const ownCategories = await u1.get(`/users/${enc(ctx.u1Id)}/categories`);
+        expectStatus(ownCategories, 200);
+        assert(containsId(pickList(ownCategories.json), ctx.userCatId), 'owned category is missing');
+
+        expectStatus(
+            await u1.patch(`/categories/${enc(ctx.userCatId)}`, { description: 'owned category' }),
+            200
+        );
+        expectStatus(await u2.patch(`/categories/${enc(ctx.userCatId)}`, { title: 'hack' }), 403);
+        expectStatus(await u2.del(`/categories/${enc(ctx.userCatId)}`), 403);
+        expectStatus(await u1.del(`/categories/${enc(ctx.userCatId)}`), [200, 204]);
     });
 
     await test('admin: category without title is rejected', async () => {
@@ -663,6 +679,15 @@ async function main() {
             ctx.postId !== undefined,
             `post created (${r.status}) but no id in the response and not found in GET /posts. Response: ${r.text.slice(0, 200)}. Tip: return the created post (with "id") from POST /posts.`
         );
+    });
+
+    await test('author profile lists own posts', async () => {
+        need(ctx.u1Id, 'user1 id');
+        need(ctx.postId, 'post id');
+        const r = await u1.get(`/users/${enc(ctx.u1Id)}/posts`);
+        expectStatus(r, 200);
+        assert(containsId(pickList(r.json), ctx.postId), 'own post is missing from profile posts');
+        expectStatus(await u2.get(`/users/${enc(ctx.u1Id)}/posts`), 403);
     });
 
     await test('post is publicly readable, with its categories', async () => {
@@ -793,6 +818,18 @@ async function main() {
             200,
             'restore: '
         );
+    });
+
+    await test('author profile lists own comments', async () => {
+        need(ctx.u2Id, 'user2 id');
+        need(ctx.commentId, 'comment id');
+        const r = await u2.get(`/users/${enc(ctx.u2Id)}/comments`);
+        expectStatus(r, 200);
+        assert(
+            containsId(pickList(r.json), ctx.commentId),
+            'own comment is missing from profile comments'
+        );
+        expectStatus(await u1.get(`/users/${enc(ctx.u2Id)}/comments`), 403);
     });
 
     await test('guest cannot delete a comment -> 401', async () => {

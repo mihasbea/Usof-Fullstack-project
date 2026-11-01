@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { selectIsAuthenticated } from '../../features/auth/authSlice';
+import { PostAttachments } from '../../features/posts/PostAttachments';
 import { PostRating } from '../../features/posts/PostRating';
 import {
     useAddPostCommentMutation,
@@ -9,12 +10,28 @@ import {
     useGetPostCommentsQuery,
 } from '../../features/posts/postsApi';
 
+function formatDate(value) {
+    if (!value) return '';
+    return new Date(value).toLocaleString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
 export function PostPage() {
     const { postId } = useParams();
     const isAuthenticated = useSelector(selectIsAuthenticated);
     const [commentError, setCommentError] = useState('');
     const { data: post, isLoading, isError } = useGetPostByIdQuery(postId);
-    const { data: comments = [], isLoading: commentsLoading } = useGetPostCommentsQuery(postId);
+    const {
+        data: comments = [],
+        isLoading: commentsLoading,
+        isError: commentsError,
+        refetch: refetchComments,
+    } = useGetPostCommentsQuery(postId);
     const [addPostComment, { isLoading: isSubmitting }] = useAddPostCommentMutation();
 
     const handleSubmit = async (event) => {
@@ -22,7 +39,10 @@ export function PostPage() {
         setCommentError('');
         const form = event.currentTarget;
         const content = String(new FormData(form).get('content') ?? '').trim();
-        if (!content) return;
+        if (!content) {
+            setCommentError('Please enter a comment before posting.');
+            return;
+        }
 
         try {
             await addPostComment({ postId, content }).unwrap();
@@ -47,7 +67,7 @@ export function PostPage() {
 
     return (
         <section className="page-block post-detail">
-            <Link to="/" className="post-back-link">← Back to posts</Link>
+            <Link to="/" className="post-back-link">← Back to the main page</Link>
             <div className="post-detail-header">
                 <div className="post-category-list">
                     {post.categories?.map((category) => (
@@ -55,21 +75,41 @@ export function PostPage() {
                     ))}
                 </div>
                 <h2>{post.title}</h2>
-                <p className="post-author">Posted by <strong>{post.author_login}</strong></p>
+                <p className="post-author">
+                    Posted by <strong>{post.author_login}</strong>
+                    <span> · </span>
+                    <time dateTime={post.created_at}>{formatDate(post.created_at)}</time>
+                    {post.updated_at !== post.created_at && (
+                        <span> · Updated {formatDate(post.updated_at)}</span>
+                    )}
+                </p>
             </div>
             <div className="post-detail-content">{post.content}</div>
+            <PostAttachments attachments={post.attachments} />
             <PostRating post={post} />
 
             <section className="post-comments" aria-labelledby="comments-heading">
                 <h3 id="comments-heading">Discussion ({comments.length})</h3>
                 {commentsLoading ? (
                     <p>Loading comments...</p>
+                ) : commentsError ? (
+                    <div>
+                        <p role="alert">Could not load comments.</p>
+                        <button type="button" className="btn btn-secondary" onClick={refetchComments}>
+                            Try again
+                        </button>
+                    </div>
                 ) : comments.length > 0 ? (
                     <div className="post-comments-list">
                         {comments.map((comment) => (
-                            <article className="post-comment" key={comment.id}>
+                            <article className="post-comment" id={`comment-${comment.id}`} key={comment.id}>
                                 <p>{comment.content}</p>
-                                <span>Comment by <strong>{comment.author_login}</strong></span>
+                                <span>
+                                    Comment by <strong>{comment.author_login}</strong>
+                                    <span> · </span>
+                                    <time dateTime={comment.created_at}>{formatDate(comment.created_at)}</time>
+                                    <span> · {comment.likes_count} likes</span>
+                                </span>
                             </article>
                         ))}
                     </div>
