@@ -199,7 +199,6 @@ export function PublicProfilePage() {
       userId,
       page: postPage,
       limit: PAGE_SIZE,
-      allAuthors: isAdmin && String(currentUser?.id) === String(userId),
     },
     { skip: activeTab !== "posts" },
   );

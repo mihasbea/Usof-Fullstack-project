@@ -102,7 +102,6 @@ export const profileApi = createApi({
         status,
         sort = "date",
         order = "desc",
-        allAuthors = false,
       }) => {
         const params = new URLSearchParams({
           page,
@@ -111,7 +110,6 @@ export const profileApi = createApi({
           order,
         });
         if (status) params.set("status", status);
-        if (allAuthors) params.set("all_authors", "true");
         return `/api/users/${userId}/posts?${params.toString()}`;
       },
       providesTags: (_result, _error, { userId }) => [

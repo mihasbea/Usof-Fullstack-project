@@ -2997,15 +2997,28 @@ a.notification-item__message:hover {
   color: var(--text);
 }
 
-.admin-profile-editor .admin-profile-editor__checkbox {
+.admin-profile-editor .profile-form .admin-profile-editor__checkbox {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: 0.55rem;
+  justify-self: start;
+  gap: 0.65rem;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fffaf4;
+  cursor: pointer;
 }
 
-.admin-profile-editor__checkbox input {
+.admin-profile-editor .profile-form .admin-profile-editor__checkbox input {
+  flex: 0 0 1rem;
   width: 1rem;
+  min-width: 1rem;
   height: 1rem;
+  margin: 0;
   accent-color: var(--primary);
 }
 
