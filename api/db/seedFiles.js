@@ -44,7 +44,7 @@ function createSolidColorPng(color) {
     ]);
 }
 
-async function createSeedFiles() {
+async function createSeedFiles(connection) {
     const postsDir = path.join(UPLOADS_DIR, 'posts');
     await fs.mkdir(postsDir, { recursive: true });
 
@@ -52,6 +52,55 @@ async function createSeedFiles() {
         SEED_IMAGE_COLORS.map((color, index) =>
             fs.writeFile(path.join(postsDir, `seed-${index + 1}.png`), createSolidColorPng(color))
         )
+    );
+
+    await copyCustomSeedFiles('posts');
+    await copyCustomSeedFiles('avatars');
+    await useCustomPostImages(connection);
+}
+
+async function useCustomPostImages(connection) {
+    const sourceDir = path.join(__dirname, 'seed-assets', 'posts');
+
+    for (let postId = 1; postId <= SEED_IMAGE_COLORS.length; postId += 1) {
+        const filename = `seed-${postId}.jpg`;
+        try {
+            await fs.access(path.join(sourceDir, filename));
+        } catch (error) {
+            if (error.code === 'ENOENT') {
+                continue;
+            }
+            throw error;
+        }
+
+        await connection.query(
+            'UPDATE post_attachments SET file_path = ? WHERE post_id = ? AND file_path = ?',
+            [`/uploads/posts/${filename}`, postId, `/uploads/posts/seed-${postId}.png`]
+        );
+    }
+}
+
+async function copyCustomSeedFiles(subdir) {
+    const sourceDir = path.join(__dirname, 'seed-assets', subdir);
+    const destinationDir = path.join(UPLOADS_DIR, subdir);
+    await fs.mkdir(destinationDir, { recursive: true });
+
+    let entries;
+    try {
+        entries = await fs.readdir(sourceDir, { withFileTypes: true });
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            return;
+        }
+        throw error;
+    }
+
+    await Promise.all(
+        entries
+            .filter((entry) => entry.isFile())
+            .map((entry) =>
+                fs.copyFile(path.join(sourceDir, entry.name), path.join(destinationDir, entry.name))
+            )
     );
 }
 

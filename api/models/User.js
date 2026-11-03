@@ -1,7 +1,7 @@
 const { pool, withTransaction } = require('../db/db');
 
 const PUBLIC_FIELDS = 'id, login, full_name, profile_picture, rating, role, created_at';
-const PROFILE_FIELDS = `${PUBLIC_FIELDS}, email, updated_at`;
+const PROFILE_FIELDS = `${PUBLIC_FIELDS}, email, email_confirmed, updated_at`;
 
 class User {
     static async create(userData) {
@@ -70,6 +70,82 @@ class User {
         const sql = `SELECT ${PUBLIC_FIELDS} FROM users ORDER BY id`;
         const [rows] = await pool.query(sql);
         return rows;
+    }
+
+    static async findPublicDirectory({ search, viewerId, limit, offset }) {
+        const conditions = ['u.email_confirmed = TRUE'];
+        const params = [];
+        if (search) {
+            conditions.push('(u.login LIKE ? OR u.full_name LIKE ?)');
+            const pattern = `%${search}%`;
+            params.push(pattern, pattern);
+        }
+        const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+        const usersSql = `
+            SELECT ${PUBLIC_FIELDS},
+                   (SELECT COUNT(*) FROM user_subscriptions us WHERE us.followed_id = u.id)
+                       AS follower_count,
+                   (SELECT COUNT(*) FROM posts p
+                    WHERE p.author_id = u.id AND p.status = 'active') AS post_count,
+                   EXISTS (
+                       SELECT 1 FROM user_subscriptions viewer_subscriptions
+                       WHERE viewer_subscriptions.follower_id = ?
+                         AND viewer_subscriptions.followed_id = u.id
+                   ) AS is_following
+            FROM users u
+            ${where}
+            ORDER BY follower_count DESC, u.login ASC, u.id ASC
+            LIMIT ? OFFSET ?
+        `;
+        const countSql = `SELECT COUNT(*) AS total FROM users u ${where}`;
+        const [[users], [countRows]] = await Promise.all([
+            pool.query(usersSql, [viewerId ?? 0, ...params, limit, offset]),
+            pool.query(countSql, params),
+        ]);
+        return { users, total: countRows[0].total };
+    }
+
+    static async getPublicActivityCounts(userId) {
+        const sql = `
+            SELECT
+                (SELECT COUNT(*) FROM posts
+                 WHERE author_id = ? AND status = 'active') AS post_count,
+                (SELECT COUNT(*) FROM comments c
+                 JOIN posts p ON p.id = c.post_id
+                 WHERE c.author_id = ? AND c.status = 'active' AND p.status = 'active')
+                    AS comment_count,
+                (SELECT COUNT(*) FROM categories WHERE created_by = ?) AS category_count
+        `;
+        const [rows] = await pool.query(sql, [userId, userId, userId]);
+        return {
+            post_count: Number(rows[0].post_count),
+            comment_count: Number(rows[0].comment_count),
+            category_count: Number(rows[0].category_count),
+        };
+    }
+
+    static async getProfileActivityCounts(userId, includeAllPosts = false) {
+        const postCondition = includeAllPosts ? '1 = 1' : 'author_id = ?';
+        const params = includeAllPosts
+            ? [userId, userId, userId, userId, userId, userId]
+            : [userId, userId, userId, userId, userId, userId, userId];
+        const sql = `
+            SELECT
+                (SELECT COUNT(*) FROM posts WHERE ${postCondition}) AS profile_post_count,
+                (SELECT COUNT(*) FROM comments WHERE author_id = ?) AS profile_comment_count,
+                (SELECT COUNT(*) FROM categories WHERE created_by = ?) AS profile_category_count,
+                (SELECT COUNT(*) FROM favorites WHERE user_id = ?) AS saved_post_count,
+                (SELECT COUNT(*) FROM user_subscriptions WHERE follower_id = ?) AS followed_user_count,
+                (SELECT COUNT(*) FROM category_subscriptions WHERE user_id = ?)
+                    AS followed_category_count,
+                (SELECT COUNT(*) FROM post_subscriptions WHERE user_id = ?)
+                    AS followed_post_count
+        `;
+        const [rows] = await pool.query(sql, params);
+        const counts = rows[0];
+        return Object.fromEntries(
+            Object.entries(counts).map(([key, value]) => [key, Number(value)])
+        );
     }
 
     static async findAllProfiles() {

@@ -8,5 +8,6 @@ router.use(requireAuth);
 
 router.get('/posts', SubscriptionController.getPosts);
 router.get('/categories', SubscriptionController.getCategories);
+router.get('/users', SubscriptionController.getUsers);
 
 module.exports = router;

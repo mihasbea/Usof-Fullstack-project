@@ -148,13 +148,15 @@ class PostController {
             const { title, content, categories, status } = req.body;
             const changes = {};
 
-            if ((title !== undefined || content !== undefined) && !isAuthor) {
+            if ((title !== undefined || content !== undefined) && !isAuthor && !isAdmin) {
+                return res.status(403).json({
+                    message: 'Only the author or an admin can change the title and content',
+                });
+            }
+            if (status !== undefined && !isAdmin && !isAuthor) {
                 return res
                     .status(403)
-                    .json({ message: 'Only the author can change the title and content' });
-            }
-            if (status !== undefined && !isAdmin) {
-                return res.status(403).json({ message: 'Only an admin can change the status' });
+                    .json({ message: 'Only the author or an admin can change the status' });
             }
 
             if (title !== undefined) {

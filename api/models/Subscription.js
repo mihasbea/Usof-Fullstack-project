@@ -1,6 +1,80 @@
 const { pool } = require('../db/db');
 
 class Subscription {
+    static async subscribeToUser(followerId, followedId) {
+        await pool.query(
+            'INSERT INTO user_subscriptions (follower_id, followed_id) VALUES (?, ?)',
+            [followerId, followedId]
+        );
+    }
+
+    static async unsubscribeFromUser(followerId, followedId) {
+        const [result] = await pool.query(
+            'DELETE FROM user_subscriptions WHERE follower_id = ? AND followed_id = ?',
+            [followerId, followedId]
+        );
+        return result.affectedRows > 0;
+    }
+
+    static async findUsersBySubscriber(userId, { limit, offset }) {
+        const usersSql = `
+            SELECT u.id, u.login, u.full_name, u.profile_picture, u.rating, u.role,
+                   us.created_at AS followed_at
+            FROM user_subscriptions us
+            JOIN users u ON u.id = us.followed_id
+            WHERE us.follower_id = ?
+            ORDER BY u.login, u.id
+            LIMIT ? OFFSET ?
+        `;
+        const countSql = 'SELECT COUNT(*) AS total FROM user_subscriptions WHERE follower_id = ?';
+        const [[users], [countRows]] = await Promise.all([
+            pool.query(usersSql, [userId, limit, offset]),
+            pool.query(countSql, [userId]),
+        ]);
+        return { users, total: countRows[0].total };
+    }
+
+    static async getUserStats(userId, viewerId) {
+        const sql = `
+            SELECT
+                (SELECT COUNT(*) FROM user_subscriptions WHERE followed_id = ?) AS follower_count,
+                (SELECT COUNT(*) FROM user_subscriptions WHERE follower_id = ?) AS following_count,
+                EXISTS (
+                    SELECT 1 FROM user_subscriptions
+                    WHERE follower_id = ? AND followed_id = ?
+                ) AS is_following
+        `;
+        const [rows] = await pool.query(sql, [userId, userId, viewerId ?? 0, userId]);
+        return {
+            follower_count: Number(rows[0].follower_count),
+            following_count: Number(rows[0].following_count),
+            is_following: Boolean(rows[0].is_following),
+        };
+    }
+
+    static async findFollowers(userId, { limit, offset }, viewerId) {
+        const followersSql = `
+            SELECT u.id, u.login, u.full_name, u.profile_picture, u.rating,
+                   us.created_at AS followed_at,
+                   EXISTS (
+                       SELECT 1 FROM user_subscriptions viewer_subscriptions
+                       WHERE viewer_subscriptions.follower_id = ?
+                         AND viewer_subscriptions.followed_id = u.id
+                   ) AS is_following
+            FROM user_subscriptions us
+            JOIN users u ON u.id = us.follower_id
+            WHERE us.followed_id = ?
+            ORDER BY us.created_at DESC, u.id DESC
+            LIMIT ? OFFSET ?
+        `;
+        const countSql = 'SELECT COUNT(*) AS total FROM user_subscriptions WHERE followed_id = ?';
+        const [[users], [countRows]] = await Promise.all([
+            pool.query(followersSql, [viewerId ?? 0, userId, limit, offset]),
+            pool.query(countSql, [userId]),
+        ]);
+        return { users, total: countRows[0].total };
+    }
+
     static async subscribeToPost(userId, postId) {
         const sql = 'INSERT INTO post_subscriptions (user_id, post_id) VALUES (?, ?)';
         await pool.query(sql, [userId, postId]);

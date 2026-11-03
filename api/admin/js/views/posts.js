@@ -113,6 +113,37 @@ function openCategoriesForm(api, post, categories, onSaved) {
     const dialog = openModal(`Categories of post #${post.id}`, form);
 }
 
+function openEditForm(api, post, onSaved) {
+    const title = el('input', {
+        name: 'title',
+        value: post.title,
+        required: true,
+        maxlength: 255,
+    });
+    const content = el('textarea', { name: 'content', required: true, rows: 8 }, post.content);
+    const error = formError();
+    const form = el(
+        'form',
+        {
+            className: 'form',
+            onsubmit: (event) =>
+                submitForm(event, error, async () => {
+                    await api.patch(`/posts/${post.id}`, {
+                        title: title.value,
+                        content: content.value,
+                    });
+                    dialog.close();
+                    onSaved('Post updated');
+                }),
+        },
+        field('Title', title),
+        field('Content', content),
+        error,
+        el('button', { className: 'button button-primary', type: 'submit' }, 'Save changes')
+    );
+    const dialog = openModal(`Edit post #${post.id}`, form);
+}
+
 function renderAttachment(attachment) {
     if (attachment.file_type === 'image') {
         return el(
@@ -355,6 +386,7 @@ export async function renderPosts(container, { api }) {
                     () => changeStatus(post),
                     'secondary'
                 ),
+                button('Edit', () => openEditForm(api, post, reload), 'secondary'),
                 button(
                     'Categories',
                     () => openCategoriesForm(api, post, categories, reload),

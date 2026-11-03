@@ -7,6 +7,7 @@ const requireAdmin = require('../middlewares/requireAdmin');
 
 const router = express.Router();
 
+router.get('/search', optionalAuth, CommentController.search);
 router.get('/', requireAuth, requireAdmin, CommentController.getAll);
 
 router.get('/:comment_id', optionalAuth, loadComment, CommentController.getById);

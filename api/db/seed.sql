@@ -1,10 +1,12 @@
-INSERT IGNORE INTO users (id, login, password, full_name, email, email_confirmed, role) VALUES
-(1, 'mmykhalchenko', '$2b$10$vH12hSRZRsG9FDh4ev.M1e30t.42fqIU4S2bb03gexZLcN46krdXG', 'Mariia Mykhalchenko', 'mmykhalchenko@test.com', TRUE, 'admin'),
-(2, 'vshaforostova', '$2b$10$vH12hSRZRsG9FDh4ev.M1e30t.42fqIU4S2bb03gexZLcN46krdXG', 'Viktoriia Shaforostova', 'vshaforostova@test.com', TRUE, 'user'),
-(3, 'dburlachenko', '$2b$10$vH12hSRZRsG9FDh4ev.M1e30t.42fqIU4S2bb03gexZLcN46krdXG', 'Daniil Burlachenko', 'dburlachenko@test.com', TRUE, 'user'),
-(4, 'rferchuk', '$2b$10$vH12hSRZRsG9FDh4ev.M1e30t.42fqIU4S2bb03gexZLcN46krdXG', 'Roman Ferchuk', 'rferchuk@test.com', TRUE, 'user'),
-(5, 'amilshina', '$2b$10$vH12hSRZRsG9FDh4ev.M1e30t.42fqIU4S2bb03gexZLcN46krdXG', 'Albina Milshina', 'amilshina@test.com', TRUE, 'user'),
-(6, 'vkasatonov', '$2b$10$vH12hSRZRsG9FDh4ev.M1e30t.42fqIU4S2bb03gexZLcN46krdXG', 'Владислав Касатонов', 'vkasatonov@test.com', TRUE, 'user');
+INSERT IGNORE INTO users
+    (id, login, password, full_name, email, email_confirmed, role, profile_picture, created_at)
+VALUES
+(1, 'mmykhalchenko', '$2b$10$vH12hSRZRsG9FDh4ev.M1e30t.42fqIU4S2bb03gexZLcN46krdXG', 'Mariia Mykhalchenko', 'mmykhalchenko@test.com', TRUE, 'admin', '/uploads/avatars/mmykhalchenko.jpg', '2025-01-15 10:00:00'),
+(2, 'vshaforostova', '$2b$10$vH12hSRZRsG9FDh4ev.M1e30t.42fqIU4S2bb03gexZLcN46krdXG', 'Viktoriia Shaforostova', 'vshaforostova@test.com', TRUE, 'user', '/uploads/avatars/vshaforostova.jpg', '2025-02-04 11:30:00'),
+(3, 'dburlachenko', '$2b$10$vH12hSRZRsG9FDh4ev.M1e30t.42fqIU4S2bb03gexZLcN46krdXG', 'Daniil Burlachenko', 'dburlachenko@test.com', TRUE, 'user', '/uploads/avatars/dburlachenko.jpg', '2025-03-19 09:15:00'),
+(4, 'rferchuk', '$2b$10$vH12hSRZRsG9FDh4ev.M1e30t.42fqIU4S2bb03gexZLcN46krdXG', 'Roman Ferchuk', 'rferchuk@test.com', TRUE, 'user', '/uploads/avatars/rferchuk.jpg', '2025-04-08 14:45:00'),
+(5, 'amilshyna', '$2b$10$vH12hSRZRsG9FDh4ev.M1e30t.42fqIU4S2bb03gexZLcN46krdXG', 'Albina Milshyna', 'amilshina@test.com', TRUE, 'user', '/uploads/avatars/amilshyna.jpg', '2025-05-22 16:20:00'),
+(6, 'vkasatonov', '$2b$10$vH12hSRZRsG9FDh4ev.M1e30t.42fqIU4S2bb03gexZLcN46krdXG', 'Владислав Касатонов', 'vkasatonov@test.com', TRUE, 'user', '/uploads/avatars/vkasatonov.jpg', '2025-06-11 08:10:00');
 
 INSERT IGNORE INTO blacklisted_tokens (id, token_hash, expires_at) VALUES
 (1, '2dad9f8d2d145057ffab2d3529141f20e012455b3f1d856c3ac50677d268247c', DATE_ADD(NOW(), INTERVAL 1 HOUR)),
@@ -23,12 +25,12 @@ INSERT IGNORE INTO categories (id, title, description) VALUES
 (7, 'Game Development', 'Questions about creating video games, game engines, graphics programming, and game design.'),
 (8, 'Software Testing', 'Questions about testing methodologies, test automation, QA processes, and bug tracking.');
 
-INSERT IGNORE INTO posts (id, author_id, title, content, status) VALUES
-(1, 1, 'How to optimize SQL queries for better performance?', 'I have a large database and some of my SQL queries are running slow. What are some best practices for optimizing SQL queries to improve performance?', 'active'),
-(2, 2, 'What is the difference between REST and GraphQL?', 'I am trying to understand the differences between REST and GraphQL APIs. Can someone explain the pros and cons of each approach?', 'active'),
-(3, 3, 'How to implement JWT authentication in a Node.js application?', 'I am building a Node.js application and want to implement JWT authentication. Can someone provide a step-by-step guide or example code?', 'active'),
-(4, 4, 'What are the best practices for responsive web design?', 'I want to make my website responsive and mobile-friendly. What are some best practices for responsive web design?', 'active'),
-(5, 5, 'How to deploy a Django application on AWS?', 'I have developed a Django application and want to deploy it on AWS. What are the steps involved in deploying a Django app on AWS?', 'active');
+INSERT IGNORE INTO posts (id, author_id, title, content, status, created_at) VALUES
+(1, 1, 'How to optimize SQL queries for better performance?', 'I have a large database and some of my SQL queries are running slow. What are some best practices for optimizing SQL queries to improve performance?', 'active', '2025-07-01 09:00:00'),
+(2, 2, 'What is the difference between REST and GraphQL?', 'I am trying to understand the differences between REST and GraphQL APIs. Can someone explain the pros and cons of each approach?', 'active', '2025-07-03 12:00:00'),
+(3, 3, 'How to implement JWT authentication in a Node.js application?', 'I am building a Node.js application and want to implement JWT authentication. Can someone provide a step-by-step guide or example code?', 'active', '2025-07-06 15:30:00'),
+(4, 4, 'What are the best practices for responsive web design?', 'I want to make my website responsive and mobile-friendly. What are some best practices for responsive web design?', 'active', '2025-07-10 10:45:00'),
+(5, 5, 'How to deploy a Django application on AWS?', 'I have developed a Django application and want to deploy it on AWS. What are the steps involved in deploying a Django app on AWS?', 'active', '2025-07-14 17:20:00');
 
 INSERT IGNORE INTO post_attachments (id, post_id, file_path, file_type) VALUES
 (1, 1, '/uploads/posts/seed-1.png', 'image'),
@@ -91,11 +93,13 @@ INSERT IGNORE INTO notifications (id, user_id, post_id, type, message, data, is_
 (4, 4, 4, 'category_deleted', 'The category "UI/UX Design" was deleted from your post "What are the best practices for responsive web design?". Add another category so more people can find it. Suggested categories: Mobile Development, Game Development, Backend Development.', '{"deleted_category":{"id":104,"title":"UI/UX Design"},"post":{"id":4,"title":"What are the best practices for responsive web design?"},"remaining_categories":[{"id":2,"title":"Frontend Development"}],"suggested_categories":[{"id":3,"title":"Mobile Development"},{"id":7,"title":"Game Development"},{"id":1,"title":"Backend Development"}]}', TRUE),
 (5, 5, 5, 'category_deleted', 'The category "Cloud Hosting" was deleted from your post "How to deploy a Django application on AWS?". Add another category so more people can find it. Suggested categories: DevOps, Cybersecurity, Data Science.', '{"deleted_category":{"id":105,"title":"Cloud Hosting"},"post":{"id":5,"title":"How to deploy a Django application on AWS?"},"remaining_categories":[{"id":1,"title":"Backend Development"}],"suggested_categories":[{"id":4,"title":"DevOps"},{"id":6,"title":"Cybersecurity"},{"id":5,"title":"Data Science"}]}', FALSE);
 
-INSERT IGNORE INTO users (id, login, password, full_name, email, email_confirmed, role) VALUES
-(7, 'unconfirmed', '$2b$10$vH12hSRZRsG9FDh4ev.M1e30t.42fqIU4S2bb03gexZLcN46krdXG', 'Unconfirmed User', 'unconfirmed@test.com', FALSE, 'user');
+INSERT IGNORE INTO users
+    (id, login, password, full_name, email, email_confirmed, role, profile_picture, created_at)
+VALUES
+(7, 'unconfirmed', '$2b$10$vH12hSRZRsG9FDh4ev.M1e30t.42fqIU4S2bb03gexZLcN46krdXG', 'Unconfirmed User', 'unconfirmed@test.com', FALSE, 'user', NULL, '2025-08-01 12:00:00');
 
-INSERT IGNORE INTO posts (id, author_id, title, content, status) VALUES
-(6, 2, 'Hidden post for the moderation demo', 'This post is inactive: only its author and admins can see it.', 'inactive');
+INSERT IGNORE INTO posts (id, author_id, title, content, status, created_at) VALUES
+(6, 2, 'Hidden post for the moderation demo', 'This post is inactive: only its author and admins can see it.', 'inactive', '2025-07-18 13:15:00');
 
 INSERT IGNORE INTO comments (id, post_id, author_id, content, status) VALUES
 (6, 1, 4, 'Inactive comment for the moderation demo.', 'inactive');

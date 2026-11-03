@@ -1,6 +1,5 @@
 const nodemailer = require('nodemailer');
 
-const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3001';
 const MAILTRAP_USER = process.env.MAILTRAP_USER;
 const MAILTRAP_PASS = process.env.MAILTRAP_PASS;
@@ -123,7 +122,7 @@ async function sendResetPasswordEmail(toEmail, rawToken) {
 }
 
 async function sendConfirmationEmail(toEmail, rawToken) {
-    const confirmUrl = `${APP_URL}/api/auth/confirm-email/${rawToken}`;
+    const confirmUrl = `${CLIENT_URL}/email-confirmation/${rawToken}`;
 
     await sendMail({
         to: toEmail,

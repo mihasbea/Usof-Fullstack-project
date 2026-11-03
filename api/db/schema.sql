@@ -70,13 +70,16 @@ CREATE TABLE IF NOT EXISTS post_categories (
 CREATE TABLE IF NOT EXISTS comments (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     post_id INT UNSIGNED NOT NULL,
+    parent_comment_id INT UNSIGNED NULL,
     author_id INT UNSIGNED NOT NULL,
     content TEXT NOT NULL,
     status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
-    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (parent_comment_id) REFERENCES comments(id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_comments_parent_comment (parent_comment_id)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS likes (
@@ -125,16 +128,28 @@ CREATE TABLE IF NOT EXISTS category_subscriptions (
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS user_subscriptions (
+    follower_id INT UNSIGNED NOT NULL,
+    followed_id INT UNSIGNED NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (follower_id, followed_id),
+    FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (followed_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_subscriptions_followed (followed_id, created_at)
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS notifications (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     user_id INT UNSIGNED NOT NULL,
     post_id INT UNSIGNED,
-    type ENUM('category_deleted', 'post_updated', 'post_commented', 'category_new_post') NOT NULL,
+    type ENUM('category_deleted', 'post_updated', 'post_commented', 'category_new_post', 'post_liked') NOT NULL,
     message TEXT NOT NULL,
     data JSON NOT NULL,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    read_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
-    INDEX idx_user_read_created (user_id, is_read, created_at)
+    INDEX idx_user_read_created (user_id, is_read, created_at),
+    INDEX idx_read_at (is_read, read_at)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

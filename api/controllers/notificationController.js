@@ -12,22 +12,38 @@ class NotificationController {
                 return res.status(400).json({ message: pagination.error });
             }
 
-            const { unread } = req.query;
+            const { unread, filter } = req.query;
             if (unread !== undefined && !BOOLEAN_QUERY_VALUES.includes(unread)) {
                 return res.status(400).json({ message: 'Unread must be true or false' });
             }
+            if (filter !== undefined && !['all', 'unread', 'read'].includes(filter)) {
+                return res.status(400).json({ message: 'Filter must be all, unread, or read' });
+            }
 
+            await Notification.deleteExpiredRead();
             const { page, limit, offset } = pagination;
-            const unreadOnly = unread === 'true';
+            const selectedFilter = filter ?? (unread === 'true' ? 'unread' : 'all');
             const [notifications, counts] = await Promise.all([
-                Notification.findByUser({ userId: req.user.id, unreadOnly, limit, offset }),
+                Notification.findByUser({
+                    userId: req.user.id,
+                    filter: selectedFilter,
+                    limit,
+                    offset,
+                }),
                 Notification.countByUser(req.user.id),
             ]);
-            const total = unreadOnly ? counts.unread : counts.total;
+            const total =
+                selectedFilter === 'unread'
+                    ? counts.unread
+                    : selectedFilter === 'read'
+                      ? counts.read
+                      : counts.unread + counts.read;
 
             return res.status(200).json({
                 data: notifications,
+                total_count: counts.unread + counts.read,
                 unread_count: counts.unread,
+                read_count: counts.read,
                 pagination: buildPagination('total_notifications', total, page, limit),
             });
         } catch (error) {

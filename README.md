@@ -1,42 +1,54 @@
 # Usof Forum
 
-Usof Forum is a full-stack question-and-answer project for developers. It includes a REST API and administration panel, along with a React client structure for the forum interface.
-
-## Project structure
-
-- `api/` — Node.js and Express API, MySQL database setup, and administration panel.
-- `web/` — React application built with JavaScript, JSX, and Create React App (CRA).
-- `.env` — local configuration shared by the API and web application; create it from `.env.example`.
-- `package.json` — the only dependency manifest, at the repository root, for both applications.
+Usof Forum is a responsive question-and-answer application for developers. Members can publish and discover posts, organize discussions with categories, and communicate through threaded comments. The repository includes a React client, an Express REST API, and a MySQL database.
 
 ## Features
 
-The API provides routes for authentication, users, posts, categories, comments, likes, favorites, subscriptions, and notifications. It also includes role-based access checks, file uploads, database initialization, sample data, and an administration panel at `/admin`.
-
-The web application has a shared layout, routes for login, sign-up, email-confirmation instructions, the main page, profile, and notifications, and feature-based Redux Toolkit and RTK Query modules. Login accepts either a username or an email address. After registration, users are directed to the email-confirmation instructions page. The shared header reads the signed-in user's login, role, and avatar from Redux, links to the profile, and logs out through the API. The profile page lets users update account details and passwords, upload an avatar, browse and edit their posts, review their comments, and create and manage their own categories. The API applies an idempotent category-ownership migration when it initializes an existing database. The main feed reads the posts array and pagination metadata from the API response.
-
-CRA expects a `package.json` inside its application directory. `web/package.json` contains only the minimal CRA metadata; dependencies and scripts remain in the root manifest. The web commands preserve this file when it already exists and remove it after the command only when they created it. Install dependencies only from the repository root.
+- Browse active posts with pagination, category filters, full-text search, and sorting by date or likes.
+- View post details, attachments, ratings, comments, and nested replies.
+- Register, confirm email, sign in, update profile information, and upload an avatar.
+- Create, edit, categorize, activate, and deactivate posts.
+- Create and manage categories; browse topics and public author profiles.
+- Follow authors, categories, and post discussions; save posts and receive notifications.
+- Review profile activity, including posts, comments, categories, saved items, and subscriptions.
+- Moderate users, posts, categories, and comments through the administration panel.
+- Use the interface on mobile, tablet, and desktop screens.
 
 ## Screenshots
 
-The following screenshots show the administration panel and an example API response.
+### Main feed
 
-![Administration sign-in](api/docs/screenshots/admin-login.jpg)
+![Main feed with post sorting, category filters, and post previews](web/public/assets/screenshots/main-feed.png)
+
+### Post discussion
+
+![Post details with attachments and threaded comments](web/public/assets/screenshots/post-discussion.png)
+
+### Category discovery
+
+![Category search and responsive category cards](web/public/assets/screenshots/categories.png)
+
+### Registration
+
+![Registration form](web/public/assets/screenshots/sign-up.png)
+
+### Administration
 
 ![Administration posts](api/docs/screenshots/admin-posts.jpg)
 
-![Posts API response](api/docs/screenshots/api-posts.jpg)
+## Technology and requirements
 
-## Requirements
-
-- Node.js 22.2 or newer
-- npm
+- Node.js 22.2 or newer and npm
 - MySQL 8.0 or newer
-- Mailtrap SMTP test inbox for email confirmation and password-reset messages
+- React, React Router, Redux Toolkit, and RTK Query
+- Express 5
+- Mailtrap SMTP credentials for email confirmation
+
+All npm dependencies are installed from the repository root. The web command wrapper creates a temporary CRA manifest in `web/` when needed; do not install dependencies from that directory.
 
 ## Run locally
 
-### Install dependencies
+### 1. Install dependencies
 
 From the repository root:
 
@@ -44,77 +56,117 @@ From the repository root:
 npm install
 ```
 
-### Configure and start the API
+### 2. Configure the environment
 
-Create the project environment file once, at the repository root:
+Create `.env` from the example:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Set the MySQL connection, JWT secret, and Mailtrap values in `.env`, then start the API:
+Set the MySQL connection values and a long random `JWT_SECRET`. Configure `MAILTRAP_USER` and `MAILTRAP_PASS` to enable email confirmation. The API requires `DB_HOST`, `DB_USER`, `DB_NAME`, and `JWT_SECRET`.
+
+### 3. Start the API
+
+Ensure MySQL is running, then start the API from the repository root:
 
 ```powershell
 npm run start:api
 ```
 
-The API defaults to `http://localhost:3000`. The administration panel is available at `http://localhost:3000/admin`. On startup, the API initializes the database and adds sample data when the database is empty.
+The API is available at `http://localhost:3000`. On startup, it creates or updates the database schema and loads sample data if the database has no users. The administration panel is at `http://localhost:3000/admin`.
 
-### Start the web application
+### 4. Start the web application
 
-In a second terminal, from the repository root:
+In another terminal, from the repository root:
 
 ```powershell
 npm run dev:web
 ```
 
-Open `http://localhost:3001`. The web application uses `http://localhost:3000` as its default API URL. Configure `WEB_PORT` and `REACT_APP_API_URL` in the root `.env` file if needed.
+Open `http://localhost:3001`. The web client uses `http://localhost:3000` as its default API URL. Change `PORT`, `WEB_PORT`, `CLIENT_URL`, and `REACT_APP_API_URL` in `.env` when using different local addresses.
 
 ## Configuration
 
-Both applications read their settings from the single `.env` file in the repository root:
+| Variable                         | Purpose                                            | Default                    |
+| -------------------------------- | -------------------------------------------------- | -------------------------- |
+| `PORT`                           | API port                                           | `3000`                     |
+| `WEB_PORT`                       | Web development-server port                        | `3001`                     |
+| `CLIENT_URL`                     | Web origin used for CORS and links sent by the API | `http://localhost:3001`    |
+| `REACT_APP_API_URL`              | API origin used by the React client                | `http://localhost:3000`    |
+| `DB_HOST`                        | MySQL host                                         | `localhost`                |
+| `DB_USER`                        | MySQL username                                     | `root`                     |
+| `DB_PASSWORD`                    | MySQL password                                     | Empty                      |
+| `DB_NAME`                        | Database name                                      | `usof_db`                  |
+| `JWT_SECRET`                     | Access-token signing secret                        | Required                   |
+| `MAILTRAP_HOST`                  | SMTP host                                          | `sandbox.smtp.mailtrap.io` |
+| `MAILTRAP_PORT`                  | SMTP port                                          | `2525`                     |
+| `MAILTRAP_USER`, `MAILTRAP_PASS` | SMTP credentials                                   | Required for email flows   |
 
-| Variable | Purpose |
-| --- | --- |
-| `PORT` | API port; defaults to `3000`. |
-| `WEB_PORT` | CRA development-server port; defaults to `3001`. |
-| `APP_URL` | Base URL used to create API email links. |
-| `CLIENT_URL` | Web application origin allowed by the API and used in password-reset links. |
-| `REACT_APP_API_URL` | API base URL used by the React client. |
-| `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | MySQL connection settings. |
-| `JWT_SECRET` | Secret used to sign access tokens. |
-| `MAILTRAP_HOST`, `MAILTRAP_PORT`, `MAILTRAP_USER`, `MAILTRAP_PASS` | SMTP settings for the Mailtrap test inbox. |
-| `BASE_URL`, `ADMIN_*`, `USER_*`, `USER2_*`, `*_FIELD` | Optional credentials and field-name overrides for the API smoke-check script. |
+## Reset the database
 
-Keep `.env` and its credentials private; it is excluded from Git. The same root file also holds optional API smoke-check settings.
+To completely recreate the configured local database and reload the schema and sample data, stop the API and run this command from the repository root:
 
-## Application flow
+```powershell
+npm run reset-db
+```
 
-1. React Router displays the web application pages.
-2. Feature API modules send HTTP requests to the Express API.
-3. Express passes requests through middleware to route handlers.
-4. Controllers validate requests and coordinate database operations through the models.
-5. The API returns JSON responses to the web application.
+This command permanently drops the database named by `DB_NAME` and removes `api/uploads/`, including uploaded user media. It then recreates the schema, loads the seed data, and regenerates/copies seed media. Back up anything you need first. Start the API again with `npm run start:api`.
 
-The API enforces authorization for protected operations.
+To initialize without deleting existing data, use `npm run init-db`; it does not replace existing seed records.
 
-### Verify the profile page
+## Seed avatars
 
-1. Start the API and web application, then sign in with a confirmed account.
-2. Open `/profile`. Confirm that the login, full name, email, role, and avatar (if set) match the signed-in account.
-3. In the browser developer tools, open **Network**, select the `GET /api/users/<user_id>` request, and confirm it returns `200` and includes an `Authorization: Bearer ...` request header. Do not copy or share the token.
-4. Reloading the page currently clears the Redux-only login session; sign in again before repeating this check.
+To customize the sample users' avatars, add these image files to `api/db/seed-assets/avatars/`:
 
-## Challenge progress
+| Seed login      | Avatar filename     |
+| --------------- | ------------------- |
+| `mmykhalchenko` | `mmykhalchenko.jpg` |
+| `vshaforostova` | `vshaforostova.jpg` |
+| `dburlachenko`  | `dburlachenko.jpg`  |
+| `rferchuk`      | `rferchuk.jpg`      |
+| `amilshyna`     | `amilshyna.jpg`     |
+| `vkasatonov`    | `vkasatonov.jpg`    |
 
-### Engage
+The seed records refer to these names under `/uploads/avatars/`. The files are copied when seed data is initialized. For a database that already contains the sample users, changing `seed.sql` will not update existing records; update those users' `profile_picture` values and copy the images into `api/uploads/avatars/`, or reset the database as described above. Resetting deletes existing database data and uploaded media.
 
-I chose to build a developer-focused forum where users can publish posts, discuss them in comments, and organize content by category.
+## Seed post images
 
-### Investigate
+To replace the sample posts' generated placeholder images with JPGs, add any images you want to replace to `api/db/seed-assets/posts/` using these filenames:
 
-I reviewed the API resources and the web application requirements, then organized the repository into `api/` and `web/` directories. The root `package.json` lists dependencies for both applications and provides shared commands for starting and building them. Dependencies are installed once from the repository root, and both applications use the same root `.env` file.
+| Post                                                          | JPG filename |
+| ------------------------------------------------------------- | ------------ |
+| How to optimize SQL queries for better performance?           | `seed-1.jpg` |
+| What is the difference between REST and GraphQL?              | `seed-2.jpg` |
+| How to implement JWT authentication in a Node.js application? | `seed-3.jpg` |
+| What are the best practices for responsive web design?        | `seed-4.jpg` |
+| How to deploy a Django application on AWS?                    | `seed-5.jpg` |
 
-### Act: Basic
+The seed initializer copies supplied JPGs to `api/uploads/posts/` and links them to the matching posts. Posts without a supplied JPG keep their generated PNG placeholder. This customization is applied when seed data is first loaded; for an existing database, either copy the JPG into `api/uploads/posts/` and update that post's attachment path to `/uploads/posts/seed-N.jpg`, or reset the database. Resetting permanently deletes existing database data and uploaded media.
 
-I set up the Express and MySQL API, its administration panel, and a React application using Create React App. The web client uses Redux Toolkit and RTK Query to communicate with the API. The login form accepts a username or email, displays API errors, and stores the returned token and safe user profile in Redux. The shared header displays that profile, links to the user's profile, and supports API-backed logout. The profile page fetches the current user's API profile with the bearer token and handles loading and request errors. The API allows browser requests from the configured client origin. The main feed reads the posts array and pagination metadata from the API response and displays author names and like counts using the API field names.
+## Application architecture
+
+1. React Router renders the requested page inside the shared layout. Redux stores authentication state, and RTK Query manages API requests and cached data.
+2. The client calls the REST API with JSON or multipart form data and renders the returned records, pagination metadata, loading states, and validation errors.
+3. Express parses requests and applies CORS, authentication, and authorization middleware before dispatching to route controllers.
+4. Controllers validate inputs and permissions, then use models to query or update MySQL.
+5. The API returns JSON responses. RTK Query invalidates affected cache entries after mutations so views stay current.
+
+API resources include authentication, users, posts, categories, comments, likes, favorites, subscriptions, and notifications. The server also serves uploaded media and the administration panel. Authorization is enforced by the API, not only by the client.
+
+## Challenge documentation
+
+- **Engage:** Identified the challenge as building a useful, responsive frontend for the USOF API, with clear interactions and feedback.
+- **Investigate:** Considered the client/API boundary, React and Redux, pagination, responsive layouts, input validation, and website security.
+- **Act — Basic:** Built authentication, the shared header and menu, the post feed and detail pages, profile pages, filtering, sorting, pagination, and threaded comments.
+- **Act — Creative:** Added topic discovery and management, author and discussion subscriptions, saved posts, reactions, notifications, profile activity, responsive styling, and a shared footer.
+- **Document:** This README records the project setup, requirements, architecture, seed-data customization, screenshots, and database reset procedure.
+
+## Validation
+
+Keep `.env` and its credentials private; it is excluded from Git. Build the production web client and lint the API from the repository root:
+
+```powershell
+npm run build:web
+npm run lint:api
+```

@@ -28,6 +28,25 @@ function groupCategoriesByUser(rows) {
 }
 
 class NotificationService {
+    static async notifyPostLiked(post, actor) {
+        if (post.author_id === actor.id) {
+            return;
+        }
+
+        await NotificationService.sendSafely('a post like', async () => [
+            {
+                userId: post.author_id,
+                postId: post.id,
+                type: 'post_liked',
+                message: `${actor.login} liked your post "${post.title}".`,
+                data: {
+                    post: { id: post.id, title: post.title },
+                    author: toUserSummary(actor),
+                },
+            },
+        ]);
+    }
+
     static async notifyPostUpdated(post, changedFields, actor) {
         await NotificationService.sendSafely('a post update', async () => {
             const userIds = await Subscription.findPostSubscriberIds(post.id, actor.id);

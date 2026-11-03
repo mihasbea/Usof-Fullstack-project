@@ -12,6 +12,60 @@ class Category {
         return categories;
     }
 
+    static async search({ search, creator, creatorId, sort, limit, offset }) {
+        const conditions = [];
+        const params = [];
+        if (search) {
+            const pattern = `%${search}%`;
+            conditions.push(
+                '(c.title LIKE ? OR c.description LIKE ? OR creator.login LIKE ? OR creator.full_name LIKE ?)'
+            );
+            params.push(pattern, pattern, pattern, pattern);
+        }
+        if (creator) {
+            const pattern = `%${creator}%`;
+            conditions.push('(creator.login LIKE ? OR creator.full_name LIKE ?)');
+            params.push(pattern, pattern);
+        }
+        if (creatorId) {
+            conditions.push('c.created_by = ?');
+            params.push(creatorId);
+        }
+        const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+        const orderBy =
+            {
+                title: 'c.title ASC, c.id ASC',
+                popular: 'posts_count DESC, c.title ASC, c.id ASC',
+                newest: 'c.created_at DESC, c.id DESC',
+            }[sort] || 'c.title ASC, c.id ASC';
+        const categoriesSql = `
+            SELECT c.id, c.title, c.description, c.created_at, c.created_by,
+                   creator.login AS creator_login,
+                   creator.full_name AS creator_full_name,
+                   creator.profile_picture AS creator_profile_picture,
+                   (SELECT COUNT(*)
+                    FROM post_categories pc
+                    JOIN posts p ON p.id = pc.post_id
+                    WHERE pc.category_id = c.id AND p.status = 'active') AS posts_count
+            FROM categories c
+            LEFT JOIN users creator ON creator.id = c.created_by
+            ${where}
+            ORDER BY ${orderBy}
+            LIMIT ? OFFSET ?
+        `;
+        const countSql = `
+            SELECT COUNT(*) AS total
+            FROM categories c
+            LEFT JOIN users creator ON creator.id = c.created_by
+            ${where}
+        `;
+        const [[categories], [countRows]] = await Promise.all([
+            pool.query(categoriesSql, [...params, limit, offset]),
+            pool.query(countSql, params),
+        ]);
+        return { categories, total: countRows[0].total };
+    }
+
     static async findById(id) {
         const sql = `SELECT ${CATEGORY_OWNER_FIELDS} FROM categories WHERE id = ?`;
         const [rows] = await pool.query(sql, [id]);
@@ -19,7 +73,17 @@ class Category {
     }
 
     static async findOwnedBy(userId) {
-        const sql = `SELECT ${CATEGORY_FIELDS} FROM categories WHERE created_by = ? ORDER BY title`;
+        const sql = `
+            SELECT ${CATEGORY_FIELDS},
+                   (SELECT COUNT(*)
+                    FROM post_categories pc
+                    JOIN posts p ON p.id = pc.post_id
+                    WHERE pc.category_id = categories.id AND p.status = 'active')
+                       AS posts_count
+            FROM categories
+            WHERE created_by = ?
+            ORDER BY title
+        `;
         const [categories] = await pool.query(sql, [userId]);
         return categories;
     }

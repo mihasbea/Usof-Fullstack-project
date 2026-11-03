@@ -17,6 +17,7 @@ lerna-debug.log*
 api/uploads/
 uploads/
 logs/
+api/api-check.js
 
 .vscode/*
 !.vscode/extensions.json

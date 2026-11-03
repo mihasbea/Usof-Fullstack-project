@@ -3,7 +3,8 @@ const Category = require('../models/Category');
 const Post = require('../models/Post');
 const CategoryDeletionService = require('../services/CategoryDeletionService');
 const { buildPostListResponse, parsePostListQuery } = require('../utils/postListQuery');
-const { MAX_STRING_LENGTH, validateText } = require('../utils/validators');
+const { buildPagination, parsePagination } = require('../utils/pagination');
+const { MAX_STRING_LENGTH, parsePositiveInt, validateText } = require('../utils/validators');
 
 const MAX_DESCRIPTION_LENGTH = 1000;
 
@@ -45,6 +46,57 @@ class CategoryController {
             return res.status(200).json(categories);
         } catch (error) {
             console.error('Error fetching categories:', error);
+            return res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+
+    static async search(req, res) {
+        try {
+            const pagination = parsePagination(req.query, 20);
+            if (pagination.error) {
+                return res.status(400).json({ message: pagination.error });
+            }
+            const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+            if (search.length > 255) {
+                return res
+                    .status(400)
+                    .json({ message: 'Search must be at most 255 characters long' });
+            }
+            const creator = typeof req.query.creator === 'string' ? req.query.creator.trim() : '';
+            if (creator.length > 255) {
+                return res
+                    .status(400)
+                    .json({ message: 'Creator search must be at most 255 characters long' });
+            }
+            const creatorId =
+                req.query.creator_id === undefined ? null : parsePositiveInt(req.query.creator_id);
+            if (req.query.creator_id !== undefined && !creatorId) {
+                return res.status(400).json({ message: 'Invalid category creator ID format' });
+            }
+            const sort = req.query.sort ?? 'title';
+            if (!['title', 'popular', 'newest'].includes(sort)) {
+                return res.status(400).json({ message: 'Sort must be title, popular, or newest' });
+            }
+
+            const { categories, total } = await Category.search({
+                search,
+                creator,
+                creatorId,
+                sort,
+                limit: pagination.limit,
+                offset: pagination.offset,
+            });
+            return res.status(200).json({
+                data: categories,
+                pagination: buildPagination(
+                    'total_categories',
+                    total,
+                    pagination.page,
+                    pagination.limit
+                ),
+            });
+        } catch (error) {
+            console.error('Error searching categories:', error);
             return res.status(500).json({ message: 'Internal server error' });
         }
     }

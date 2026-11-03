@@ -21,7 +21,7 @@ const LIKE_COUNTS_JOIN = `
 
 const POST_FIELDS = `
     p.id, p.title, p.content, p.status, p.created_at, p.updated_at,
-    p.author_id, u.login AS author_login,
+    p.author_id, u.login AS author_login, u.profile_picture AS author_profile_picture,
     COALESCE(lc.likes_count, 0) AS likes_count,
     COALESCE(lc.dislikes_count, 0) AS dislikes_count
 `;
@@ -110,6 +110,54 @@ class Post {
         return posts.map((post) => ({ ...post, top_comment: byPost.get(post.id) ?? null }));
     }
 
+    static async attachUserStates(posts, userId) {
+        if (posts.length === 0) {
+            return posts;
+        }
+        if (!userId) {
+            return posts.map((post) => ({
+                ...post,
+                is_favorite: false,
+                is_subscribed: false,
+                is_author_subscribed: false,
+            }));
+        }
+
+        const sql = `
+            SELECT p.id,
+                EXISTS (
+                    SELECT 1 FROM favorites f
+                    WHERE f.user_id = ? AND f.post_id = p.id
+                ) AS is_favorite,
+                EXISTS (
+                    SELECT 1 FROM post_subscriptions ps
+                    WHERE ps.user_id = ? AND ps.post_id = p.id
+                ) AS is_subscribed,
+                EXISTS (
+                    SELECT 1 FROM user_subscriptions us
+                    WHERE us.follower_id = ? AND us.followed_id = p.author_id
+                ) AS is_author_subscribed
+            FROM posts p
+            WHERE p.id IN (?)
+        `;
+        const [rows] = await pool.query(sql, [
+            userId,
+            userId,
+            userId,
+            posts.map((post) => post.id),
+        ]);
+        const byPost = new Map(rows.map((row) => [row.id, row]));
+
+        return posts.map((post) => {
+            const state = byPost.get(post.id);
+            return {
+                ...post,
+                is_favorite: Boolean(state?.is_favorite),
+                is_subscribed: Boolean(state?.is_subscribed),
+                is_author_subscribed: Boolean(state?.is_author_subscribed),
+            };
+        });
+    }
 
     static async findAll({ user, filters, sort, order, limit, offset }) {
         const { where, params } = buildListConditions(user, filters);
@@ -119,7 +167,6 @@ class Post {
             sort === 'date'
                 ? `p.created_at ${direction}, p.id ${direction}`
                 : `${SORT_COLUMNS[sort]} ${direction}, p.created_at DESC, p.id DESC`;
-
 
         const postsSql = `
             SELECT ${POST_FIELDS}
@@ -140,8 +187,9 @@ class Post {
         const withCategories = await Post.attachCategories(posts);
         const withAttachments = await Post.attachAttachments(withCategories);
         const withTopComment = await Post.attachTopComments(withAttachments);
+        const withUserStates = await Post.attachUserStates(withTopComment, user?.id);
 
-        return { posts: withTopComment, total: countRows[0].total };
+        return { posts: withUserStates, total: countRows[0].total };
     }
 
     static async findById(id) {
@@ -166,9 +214,15 @@ class Post {
 
         const [[posts], categories, [attachments], userState] = await Promise.all([
             pool.query(postSql, [id]),
-            Post.getCategories(id),
+            Post.getCategories(id, userId),
             pool.query(attachmentsSql, [id]),
-            userId === undefined ? {} : Post.getUserState(id, userId),
+            userId === undefined
+                ? {
+                      is_favorite: false,
+                      is_subscribed: false,
+                      is_author_subscribed: false,
+                  }
+                : Post.getUserState(id, userId),
         ]);
 
         return posts.length > 0 ? { ...posts[0], ...userState, categories, attachments } : null;
@@ -180,24 +234,38 @@ class Post {
                 EXISTS (SELECT 1 FROM favorites WHERE user_id = ? AND post_id = ?) AS is_favorite,
                 EXISTS (
                     SELECT 1 FROM post_subscriptions WHERE user_id = ? AND post_id = ?
-                ) AS is_subscribed
+                ) AS is_subscribed,
+                EXISTS (
+                    SELECT 1 FROM user_subscriptions
+                    WHERE follower_id = ? AND followed_id = (
+                        SELECT author_id FROM posts WHERE id = ?
+                    )
+                ) AS is_author_subscribed
         `;
-        const [rows] = await pool.query(sql, [userId, postId, userId, postId]);
+        const [rows] = await pool.query(sql, [userId, postId, userId, postId, userId, postId]);
         return {
             is_favorite: Boolean(rows[0].is_favorite),
             is_subscribed: Boolean(rows[0].is_subscribed),
+            is_author_subscribed: Boolean(rows[0].is_author_subscribed),
         };
     }
 
-    static async getCategories(postId) {
+    static async getCategories(postId, userId) {
+        const isSubscribed = userId
+            ? `EXISTS (
+                SELECT 1 FROM category_subscriptions cs
+                WHERE cs.user_id = ? AND cs.category_id = c.id
+            )`
+            : 'FALSE';
         const sql = `
-            SELECT c.id, c.title, c.description
+            SELECT c.id, c.title, c.description, ${isSubscribed} AS is_subscribed
             FROM categories c
             JOIN post_categories pc ON c.id = pc.category_id
             WHERE pc.post_id = ?
             ORDER BY c.title
         `;
-        const [categories] = await pool.query(sql, [postId]);
+        const params = userId ? [userId, postId] : [postId];
+        const [categories] = await pool.query(sql, params);
         return categories;
     }
 
@@ -316,9 +384,26 @@ function buildListConditions(
     if (search) {
         const pattern = `%${search}%`;
         conditions.push(
-            '(p.title LIKE ? OR p.content LIKE ? OR p.author_id IN (SELECT id FROM users WHERE login LIKE ? OR full_name LIKE ?))'
+            `(
+                p.title LIKE ?
+                OR p.content LIKE ?
+                OR p.author_id IN (
+                    SELECT id FROM users WHERE login LIKE ? OR full_name LIKE ?
+                )
+                OR EXISTS (
+                    SELECT 1
+                    FROM comments c
+                    JOIN users comment_author ON comment_author.id = c.author_id
+                    WHERE c.post_id = p.id AND c.status = 'active'
+                      AND (
+                          c.content LIKE ?
+                          OR comment_author.login LIKE ?
+                          OR comment_author.full_name LIKE ?
+                      )
+                )
+            )`
         );
-        params.push(pattern, pattern, pattern, pattern);
+        params.push(pattern, pattern, pattern, pattern, pattern, pattern, pattern);
     }
 
     if (favoriteOf) {

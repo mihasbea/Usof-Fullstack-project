@@ -1,105 +1,119 @@
-import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { useLoginUserMutation } from '../../features/auth/authApi';
-import { setCredentials } from '../../features/auth/authSlice';
-import { AuthLayout } from '../../components/layout/AuthLayout';
+import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { useLoginUserMutation } from "../../features/auth/authApi";
+import { setCredentials } from "../../features/auth/authSlice";
+import {
+  getRememberedLogin,
+  rememberLogin,
+} from "../../features/auth/authStorage";
+import { AuthLayout } from "../../components/layout/AuthLayout";
 
 export function LoginPage() {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const redirectTo = location.state?.from ?? '/';
-    const dispatch = useDispatch();
-    const [loginUser, { isLoading }] = useLoginUserMutation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = location.state?.from ?? "/";
+  const dispatch = useDispatch();
+  const [loginUser, { isLoading }] = useLoginUserMutation();
 
-    const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState("");
+  const [loginOrEmail, setLoginOrEmail] = useState(getRememberedLogin);
 
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        setErrorMessage('');
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setErrorMessage("");
 
-        const form = event.currentTarget;
-        const formData = new FormData(form);
-        const loginOrEmail = String(formData.get('loginOrEmail') ?? '').trim();
-        const password = String(formData.get('password') ?? '');
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const loginOrEmail = String(formData.get("loginOrEmail") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
 
-        if (!loginOrEmail || !password) {
-            setErrorMessage('Please enter both login/email and password.');
-            return;
-        }
+    if (!loginOrEmail || !password) {
+      setErrorMessage("Please enter both login/email and password.");
+      return;
+    }
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const isEmail = emailRegex.test(loginOrEmail);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isEmail = emailRegex.test(loginOrEmail);
 
-        const credentials = isEmail
-            ? { email: loginOrEmail, password }
-            : { login: loginOrEmail, password };
+    const credentials = isEmail
+      ? { email: loginOrEmail, password }
+      : { login: loginOrEmail, password };
 
-        try {
-            const data = await loginUser(credentials).unwrap();
+    try {
+      const data = await loginUser(credentials).unwrap();
 
-            dispatch(setCredentials({
-                user: data.user,
-                token: data.token,
-            }));
-            navigate(redirectTo, { replace: true });
-        } catch (err) {
-            const backendError = err?.data?.message || 'Invalid login or password.';
-            setErrorMessage(backendError);
-        }
-    };
+      dispatch(
+        setCredentials({
+          user: data.user,
+          token: data.token,
+        }),
+      );
+      rememberLogin(loginOrEmail);
+      navigate(redirectTo, { replace: true });
+    } catch (err) {
+      const backendError = err?.data?.message || "Invalid login or password.";
+      setErrorMessage(backendError);
+    }
+  };
 
-    return (
-        <AuthLayout>
-            <div className="auth-card">
-                <p className="eyebrow">Welcome back</p>
-                {redirectTo === '/posts/new' && (
-                    <p className="auth-description">
-                        Log in to create a post. No account yet? <Link to="/signup">Sign up</Link>.
-                    </p>
-                )}
-                <h1>Log in to your account</h1>
+  return (
+    <AuthLayout>
+      <div className="auth-card">
+        {redirectTo === "/posts/new" && (
+          <p className="auth-description">
+            Log in to create a post. No account yet?{" "}
+            <Link to="/signup">Sign up</Link>.
+          </p>
+        )}
+        <h1>Log in to your account</h1>
 
-                <form className="auth-form" onSubmit={handleSubmit}>
-                    {errorMessage && (
-                        <p role="alert" className="error-message">
-                            {errorMessage}
-                        </p>
-                    )}
+        <form className="auth-form" onSubmit={handleSubmit}>
+          {errorMessage && (
+            <p role="alert" className="error-message">
+              {errorMessage}
+            </p>
+          )}
 
-                    <label>
-                        Login or Email
-                        <input
-                            name="loginOrEmail"
-                            type="text"
-                            placeholder="Your login or email"
-                            autoComplete="username"
-                            disabled={isLoading}
-                            required
-                        />
-                    </label>
+          <label>
+            Login or Email
+            <input
+              name="loginOrEmail"
+              type="text"
+              value={loginOrEmail}
+              onChange={(event) => setLoginOrEmail(event.target.value)}
+              placeholder="Your login or email"
+              autoComplete="username"
+              disabled={isLoading}
+              required
+            />
+          </label>
 
-                    <label>
-                        Password
-                        <input
-                            name="password"
-                            type="password"
-                            placeholder="Enter your password"
-                            autoComplete="current-password"
-                            disabled={isLoading}
-                            required
-                        />
-                    </label>
+          <label>
+            Password
+            <input
+              name="password"
+              type="password"
+              placeholder="Enter your password"
+              autoComplete="current-password"
+              disabled={isLoading}
+              required
+            />
+          </label>
 
-                    <button type="submit" className="btn btn-primary wide" disabled={isLoading}>
-                        {isLoading ? 'Logging in...' : 'Log in'}
-                    </button>
-                </form>
+          <button
+            type="submit"
+            className="btn btn-primary wide"
+            disabled={isLoading}
+          >
+            {isLoading ? "Logging in..." : "Log in"}
+          </button>
+        </form>
 
-                <p className="auth-link">
-                    New to USOF? <Link to="/signup">Create an account</Link>
-                </p>
-            </div>
-        </AuthLayout>
-    );
+        <p className="auth-link">
+          New to USOF? <Link to="/signup">Create an account</Link>
+        </p>
+      </div>
+    </AuthLayout>
+  );
 }

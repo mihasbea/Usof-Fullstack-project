@@ -1,7 +1,7 @@
 const Comment = require('../models/Comment');
 const NotificationService = require('../services/NotificationService');
 const { buildPagination, parsePagination } = require('../utils/pagination');
-const { validateText } = require('../utils/validators');
+const { parsePositiveInt, validateText } = require('../utils/validators');
 
 const COMMENT_STATUSES = ['active', 'inactive'];
 const DEFAULT_PAGE_SIZE = 20;
@@ -67,10 +67,47 @@ class CommentController {
 
     static async getByPost(req, res) {
         try {
-            const comments = await Comment.findByPost(req.post.id);
+            const comments = await Comment.findByPost(req.post.id, req.user?.id);
             return res.status(200).json(comments);
         } catch (error) {
             console.error(`Error fetching comments of post ID ${req.post.id}:`, error);
+            return res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+
+    static async search(req, res) {
+        try {
+            const pagination = parsePagination(req.query, 10);
+            if (pagination.error) {
+                return res.status(400).json({ message: pagination.error });
+            }
+            const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+            if (!search) {
+                return res.status(400).json({ message: 'Search query is required' });
+            }
+            if (search.length > 255) {
+                return res
+                    .status(400)
+                    .json({ message: 'Search must be at most 255 characters long' });
+            }
+
+            const { comments, total } = await Comment.findPublicSearch({
+                search,
+                userId: req.user?.id,
+                limit: pagination.limit,
+                offset: pagination.offset,
+            });
+            return res.status(200).json({
+                data: comments,
+                pagination: buildPagination(
+                    'total_comments',
+                    total,
+                    pagination.page,
+                    pagination.limit
+                ),
+            });
+        } catch (error) {
+            console.error('Error searching public comments:', error);
             return res.status(500).json({ message: 'Internal server error' });
         }
     }
@@ -89,8 +126,23 @@ class CommentController {
                 return res.status(400).json({ message: contentError });
             }
 
+            const rawParentId = req.body.parent_comment_id;
+            let parentCommentId = null;
+            if (rawParentId !== undefined && rawParentId !== null && rawParentId !== '') {
+                parentCommentId = parsePositiveInt(rawParentId);
+                if (!parentCommentId) {
+                    return res.status(400).json({ message: 'Invalid parent comment ID format' });
+                }
+                if (!(await Comment.isActiveOnPost(parentCommentId, req.post.id))) {
+                    return res.status(400).json({
+                        message: 'Replies must reference an active comment on this post',
+                    });
+                }
+            }
+
             const commentId = await Comment.create({
                 post_id: req.post.id,
+                parent_comment_id: parentCommentId,
                 author_id: req.user.id,
                 content: content.trim(),
             });
@@ -120,21 +172,43 @@ class CommentController {
                 !req.body ||
                 typeof req.body !== 'object' ||
                 Array.isArray(req.body) ||
-                Object.keys(req.body).some((field) => field !== 'status')
+                Object.keys(req.body).some((field) => !['content', 'status'].includes(field)) ||
+                Object.keys(req.body).length === 0
             ) {
                 return res.status(400).json({
-                    message: 'Only the comment status can be changed',
+                    message: 'Provide comment content or status to update',
                 });
             }
 
-            const { status } = req.body;
-            if (!COMMENT_STATUSES.includes(status)) {
-                return res
-                    .status(400)
-                    .json({ message: `Status must be one of: ${COMMENT_STATUSES.join(', ')}` });
+            const { content, status } = req.body;
+            if (content !== undefined) {
+                if (!canManage(req.comment, req.user)) {
+                    return res
+                        .status(403)
+                        .json({ message: 'Only the author or an admin can edit this comment' });
+                }
+                const contentError = validateText(content, 'Content');
+                if (contentError) {
+                    return res.status(400).json({ message: contentError });
+                }
+            }
+            if (status !== undefined) {
+                if (req.user.role !== 'admin') {
+                    return res
+                        .status(403)
+                        .json({ message: 'Only an admin can change comment status' });
+                }
+                if (!COMMENT_STATUSES.includes(status)) {
+                    return res
+                        .status(400)
+                        .json({ message: `Status must be one of: ${COMMENT_STATUSES.join(', ')}` });
+                }
             }
 
-            await Comment.updateStatus(req.comment.id, status);
+            await Comment.update(req.comment.id, {
+                ...(content !== undefined ? { content: content.trim() } : {}),
+                ...(status !== undefined ? { status } : {}),
+            });
             const comment = await Comment.findById(req.comment.id);
 
             return res.status(200).json({ message: 'Comment updated successfully', comment });

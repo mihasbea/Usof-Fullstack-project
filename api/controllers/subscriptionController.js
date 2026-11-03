@@ -1,9 +1,80 @@
 const { isDuplicateEntryError } = require('../db/db');
 const Post = require('../models/Post');
 const Subscription = require('../models/Subscription');
+const User = require('../models/User');
+const { buildPagination, parsePagination } = require('../utils/pagination');
 const { buildPostListResponse, parsePostListQuery } = require('../utils/postListQuery');
+const { parsePositiveInt } = require('../utils/validators');
 
 class SubscriptionController {
+    static async getUsers(req, res) {
+        try {
+            const pagination = parsePagination(req.query, 20);
+            if (pagination.error) {
+                return res.status(400).json({ message: pagination.error });
+            }
+
+            const { users, total } = await Subscription.findUsersBySubscriber(
+                req.user.id,
+                pagination
+            );
+            return res.status(200).json({
+                data: users,
+                pagination: buildPagination(
+                    'total_users',
+                    total,
+                    pagination.page,
+                    pagination.limit
+                ),
+            });
+        } catch (error) {
+            console.error('Error fetching followed users:', error);
+            return res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+
+    static async subscribeToUser(req, res) {
+        try {
+            const followedId = parsePositiveInt(req.params.user_id);
+            if (!followedId) {
+                return res.status(400).json({ message: 'Invalid user ID format' });
+            }
+            if (followedId === req.user.id) {
+                return res.status(400).json({ message: 'You cannot follow yourself' });
+            }
+            if (!(await User.findPublicById(followedId))) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            await Subscription.subscribeToUser(req.user.id, followedId);
+            return res.status(201).json({ message: 'You are now following this user' });
+        } catch (error) {
+            if (isDuplicateEntryError(error)) {
+                return res.status(409).json({ message: 'You are already following this user' });
+            }
+            console.error(`Error following user ID ${req.params.user_id}:`, error);
+            return res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+
+    static async unsubscribeFromUser(req, res) {
+        try {
+            const followedId = parsePositiveInt(req.params.user_id);
+            if (!followedId) {
+                return res.status(400).json({ message: 'Invalid user ID format' });
+            }
+
+            const removed = await Subscription.unsubscribeFromUser(req.user.id, followedId);
+            if (!removed) {
+                return res.status(404).json({ message: 'You are not following this user' });
+            }
+            return res.status(200).json({ message: 'You unfollowed this user' });
+        } catch (error) {
+            console.error(`Error unfollowing user ID ${req.params.user_id}:`, error);
+            return res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+
     static async getPosts(req, res) {
         try {
             const query = parsePostListQuery(req.query);

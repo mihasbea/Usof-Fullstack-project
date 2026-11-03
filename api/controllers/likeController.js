@@ -1,5 +1,6 @@
 const { isDuplicateEntryError } = require('../db/db');
 const Like = require('../models/Like');
+const NotificationService = require('../services/NotificationService');
 
 const LIKE_TYPES = ['like', 'dislike'];
 const TARGET_LABELS = { post: 'Post', comment: 'Comment' };
@@ -61,6 +62,9 @@ async function createLike(req, res, target) {
         if (existingLike) {
             await Like.updateType(existingLike.id, type, target.ownerId);
             const like = await Like.findById(existingLike.id);
+            if (target.type === 'post' && type === 'like') {
+                await NotificationService.notifyPostLiked(req.post, req.user);
+            }
             return res.status(200).json({ message: `Changed to ${type}`, like });
         }
 
@@ -72,6 +76,9 @@ async function createLike(req, res, target) {
             ownerId: target.ownerId,
         });
         const like = await Like.findById(likeId);
+        if (target.type === 'post' && type === 'like') {
+            await NotificationService.notifyPostLiked(req.post, req.user);
+        }
 
         return res
             .status(201)

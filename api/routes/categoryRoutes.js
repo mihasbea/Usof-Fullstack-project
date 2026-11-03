@@ -7,6 +7,7 @@ const loadCategory = require('../middlewares/loadCategory');
 const router = express.Router();
 
 router.get('/', CategoryController.getAll);
+router.get('/search', CategoryController.search);
 router.post('/', requireAuth, CategoryController.create);
 
 router.get('/:category_id', loadCategory, CategoryController.getById);
